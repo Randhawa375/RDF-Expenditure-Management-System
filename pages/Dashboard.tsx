@@ -11,7 +11,11 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
   const navigate = useNavigate();
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit' }).format(new Date()).slice(0, 7);
+    const now = new Date();
+    return [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0')
+    ].join('-');
   });
 
   const filteredTransactions = useMemo(() => {
