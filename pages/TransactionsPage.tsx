@@ -13,7 +13,10 @@ interface TransactionsPageProps {
 const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions, onAdd }) => {
   const navigate = useNavigate();
   const todayRef = useRef<HTMLButtonElement>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    // Use local year-month
+    return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit' }).format(new Date()).slice(0, 7);
+  });
 
   useEffect(() => {
     if (todayRef.current) {
@@ -223,8 +226,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
             const dayObj = new Date(y, m - 1, d);
             const dayName = dayObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
             const dayNum = dayObj.getDate();
-            const today = new Date();
-            const isToday = today.getDate() === d && today.getMonth() === m - 1 && today.getFullYear() === y;
+            const isToday = new Intl.DateTimeFormat('en-CA').format(new Date()) === dateStr;
             const targetPath = isExpense ? `/expenses/${dateStr}` : `/receipts/${dateStr}`;
 
             return (
@@ -233,8 +235,8 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
                 ref={isToday ? todayRef : null}
                 onClick={() => navigate(targetPath)}
                 className={`w-full flex items-center justify-between p-4 md:p-5 transition-all hover:bg-slate-50/50 group ${isToday
-                    ? 'bg-indigo-50 border border-indigo-100 shadow-sm transform scale-[1.01] z-10'
-                    : 'border border-transparent'
+                  ? 'bg-indigo-50 border border-indigo-100 shadow-sm transform scale-[1.01] z-10'
+                  : 'border border-transparent'
                   }`}
               >
                 <div className="flex items-center gap-4 md:gap-6">
