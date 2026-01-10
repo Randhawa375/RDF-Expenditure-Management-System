@@ -172,6 +172,16 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
               <p className="font-urdu text-sm md:text-base text-slate-400 mt-0.5 leading-none truncate">
                 {isExpense ? 'اخراجات کی تفصیل' : 'ادائیگی موصول ہوئی'}
               </p>
+              {/* Debug Info: Remove after fixing */}
+              <div className="text-[9px] text-slate-300 font-mono mt-1 leading-none">
+                Sys: {new Date().toLocaleTimeString()} <br />
+                PKT: {(() => {
+                  const now = new Date();
+                  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+                  const pkt = new Date(utc + (5 * 3600000));
+                  return pkt.toISOString().split('T')[0];
+                })()}
+              </div>
             </div>
           </div>
 
@@ -230,14 +240,9 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
             const dayName = dayObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
             const dayNum = dayObj.getDate();
             const now = new Date();
-            // Force Pakistan Timezone (Asia/Karachi)
-            const formatter = new Intl.DateTimeFormat('en-CA', {
-              timeZone: 'Asia/Karachi',
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit'
-            });
-            const localISODate = formatter.format(now);
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const pktDate = new Date(utc + (5 * 3600000));
+            const localISODate = pktDate.toISOString().split('T')[0];
             const isToday = localISODate === dateStr;
             const targetPath = isExpense ? `/expenses/${dateStr}` : `/receipts/${dateStr}`;
 
