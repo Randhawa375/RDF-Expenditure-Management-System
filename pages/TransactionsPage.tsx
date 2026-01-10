@@ -223,7 +223,8 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
             const dayObj = new Date(y, m - 1, d);
             const dayName = dayObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
             const dayNum = dayObj.getDate();
-            const isToday = new Date().toISOString().split('T')[0] === dateStr;
+            const today = new Date();
+            const isToday = today.getDate() === d && today.getMonth() === m - 1 && today.getFullYear() === y;
             const targetPath = isExpense ? `/expenses/${dateStr}` : `/receipts/${dateStr}`;
 
             return (
@@ -231,7 +232,10 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
                 key={dateStr}
                 ref={isToday ? todayRef : null}
                 onClick={() => navigate(targetPath)}
-                className={`w-full flex items-center justify-between p-4 md:p-5 transition-all hover:bg-slate-50/50 group ${isToday ? 'bg-indigo-50/10' : ''}`}
+                className={`w-full flex items-center justify-between p-4 md:p-5 transition-all hover:bg-slate-50/50 group ${isToday
+                    ? 'bg-indigo-50 border border-indigo-100 shadow-sm transform scale-[1.01] z-10'
+                    : 'border border-transparent'
+                  }`}
               >
                 <div className="flex items-center gap-4 md:gap-6">
                   {/* Date Block */}
