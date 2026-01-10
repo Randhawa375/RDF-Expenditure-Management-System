@@ -65,8 +65,8 @@ const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
                   key={item.path}
                   to={item.path}
                   className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-0.5 whitespace-nowrap ${isActive
-                      ? 'bg-slate-900 text-white shadow-lg'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-slate-900 text-white shadow-lg'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                 >
                   <span className="uppercase tracking-widest leading-none">{item.label}</span>
@@ -87,7 +87,10 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [defaultDate, setDefaultDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [defaultDate, setDefaultDate] = useState<string>(() => {
+    const now = new Date();
+    return new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  });
   const [forcedType, setForcedType] = useState<TransactionType | undefined>(undefined);
 
   useEffect(() => {

@@ -12,18 +12,21 @@ interface TransactionModalProps {
   isTypeLocked?: boolean;
 }
 
-const TransactionModal: React.FC<TransactionModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onSave, 
-  editTransaction, 
+const TransactionModal: React.FC<TransactionModalProps> = ({
+  isOpen,
+  onClose,
+  onSave,
+  editTransaction,
   defaultType = TransactionType.EXPENSE,
   defaultDate,
   isTypeLocked = false
 }) => {
   const [formData, setFormData] = useState<Partial<Transaction>>({
     type: defaultType,
-    date: defaultDate || new Date().toISOString().split('T')[0],
+    date: defaultDate || (() => {
+      const now = new Date();
+      return new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    })(),
     amount: 0,
     description: '',
   });
@@ -32,11 +35,14 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     if (editTransaction) {
       setFormData(editTransaction);
     } else {
-      setFormData({ 
-        type: defaultType, 
-        date: defaultDate || new Date().toISOString().split('T')[0], 
-        amount: 0, 
-        description: '' 
+      setFormData({
+        type: defaultType,
+        date: defaultDate || (() => {
+          const now = new Date();
+          return new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        })(),
+        amount: 0,
+        description: ''
       });
     }
   }, [editTransaction, defaultType, defaultDate, isOpen]);
@@ -54,7 +60,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/10 backdrop-blur-md">
       <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-50">
-        
+
         <div className="flex justify-between items-start mb-6">
           <div>
             <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none">
@@ -72,12 +78,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           <div>
             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">Amount (رقم)</label>
             <div className={`bg-slate-50 p-4 rounded-2xl border transition-all ${accentBorder}`}>
-               <input 
-                type="number" 
-                className="w-full bg-transparent outline-none text-center text-2xl font-black text-slate-900 placeholder-slate-200" 
+              <input
+                type="number"
+                className="w-full bg-transparent outline-none text-center text-2xl font-black text-slate-900 placeholder-slate-200"
                 placeholder="0"
-                value={formData.amount || ''} 
-                onChange={e => setFormData({...formData, amount: parseFloat(e.target.value) || 0})} 
+                value={formData.amount || ''}
+                onChange={e => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
                 autoFocus
               />
             </div>
@@ -86,31 +92,31 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           {/* Description Input */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">Description (تفصیل)</label>
-            <input 
-              type="text" 
-              className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-100 transition-all font-urdu text-lg font-bold placeholder-slate-300" 
+            <input
+              type="text"
+              className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-100 transition-all font-urdu text-lg font-bold placeholder-slate-300"
               placeholder="تفصیل لکھیں"
-              value={formData.description} 
-              onChange={e => setFormData({...formData, description: e.target.value})} 
+              value={formData.description}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
             />
           </div>
 
           {!shouldHideDate && (
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">Date (تاریخ)</label>
-              <input 
-                type="date" 
-                className="w-full px-5 py-3 bg-slate-50 border border-transparent rounded-2xl outline-none focus:border-indigo-100 font-bold text-slate-700 text-xs cursor-pointer" 
-                value={formData.date} 
-                onChange={e => setFormData({...formData, date: e.target.value})} 
+              <input
+                type="date"
+                className="w-full px-5 py-3 bg-slate-50 border border-transparent rounded-2xl outline-none focus:border-indigo-100 font-bold text-slate-700 text-xs cursor-pointer"
+                value={formData.date}
+                onChange={e => setFormData({ ...formData, date: e.target.value })}
               />
             </div>
           )}
         </div>
 
         <div className="mt-8">
-          <button 
-            onClick={() => onSave({...formData, id: editTransaction?.id || crypto.randomUUID()} as Transaction)} 
+          <button
+            onClick={() => onSave({ ...formData, id: editTransaction?.id || crypto.randomUUID() } as Transaction)}
             className={`w-full py-4 ${accentColor} text-white rounded-2xl text-lg font-urdu font-black shadow-lg hover:brightness-105 active:scale-95 transition-all`}
           >
             محفوظ کریں (Save)

@@ -61,20 +61,20 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
       const doc = new jsPDF();
       const title = isExpense ? 'EXPENSE RECORDS' : 'PAYMENT RECEIVED RECORDS';
       const timestamp = new Date().toLocaleString();
-      
+
       // Header Section
       doc.setFillColor(isExpense ? 225 : 16, isExpense ? 29 : 185, isExpense ? 72 : 129);
       doc.rect(0, 0, 210, 45, 'F');
-      
+
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(24);
       doc.setFont('helvetica', 'bold');
       doc.text('RDF EXPENDITURE', 20, 25);
-      
+
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.text(title, 20, 33);
-      
+
       doc.setFontSize(9);
       doc.text(`Period: ${monthName.toUpperCase()}`, 190, 25, { align: 'right' });
       doc.text(`Generated: ${timestamp}`, 190, 31, { align: 'right' });
@@ -83,12 +83,12 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
       doc.setFillColor(248, 250, 252);
       doc.setDrawColor(226, 232, 240);
       doc.roundedRect(20, 55, 170, 25, 2, 2, 'FD');
-      
+
       doc.setTextColor(100, 116, 139);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.text(`MONTHLY TOTAL ${isExpense ? 'EXPENSES' : 'RECEIVED'}:`, 30, 71);
-      
+
       doc.setTextColor(isExpense ? 225 : 16, isExpense ? 29 : 185, isExpense ? 72 : 129);
       doc.setFontSize(18);
       doc.text(`PKR ${stats.total.toLocaleString()}`, 190, 71, { align: 'right' });
@@ -97,21 +97,21 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
       let y = 100;
       doc.setFillColor(241, 245, 249);
       doc.rect(20, y - 6, 170, 10, 'F');
-      
+
       doc.setFontSize(9);
       doc.setTextColor(71, 85, 105);
       doc.setFont('helvetica', 'bold');
       doc.text('DATE', 25, y);
       doc.text('DESCRIPTION / DETAILS', 60, y);
       doc.text('AMOUNT (PKR)', 185, y, { align: 'right' });
-      
+
       y += 10;
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(30, 41, 59);
-      
+
       // Data Rows - Sorted Ascending
       const sorted = [...filteredTransactions].sort((a, b) => a.date.localeCompare(b.date));
-      
+
       sorted.forEach((t, index) => {
         if (y > 275) {
           doc.addPage();
@@ -136,7 +136,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
         const desc = t.description.length > 60 ? t.description.substring(0, 57) + '...' : t.description;
         doc.text(desc, 60, y);
         doc.text(t.amount.toLocaleString(), 185, y, { align: 'right' });
-        
+
         y += 9;
       });
 
@@ -149,14 +149,14 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
       {/* Visual Header Card - Compact Responsive Version */}
       <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 border border-slate-100 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          
+
           {/* Top Left: Title & Info */}
           <div className="flex items-start gap-3">
             <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center shrink-0 ${isExpense ? 'bg-rose-100 text-rose-500' : 'bg-emerald-100 text-emerald-500'}`}>
               {isExpense ? (
-                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M20 12H4"/></svg>
+                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M20 12H4" /></svg>
               ) : (
-                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
+                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
               )}
             </div>
             <div className="overflow-hidden">
@@ -173,18 +173,18 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
           <div className="flex items-center gap-2 justify-start md:justify-end">
             <div className="bg-slate-50 px-2 py-1 md:px-3 md:py-1.5 rounded-lg border border-slate-100 flex flex-col min-w-[120px]">
               <span className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Month</span>
-              <input 
-                type="month" 
+              <input
+                type="month"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="bg-transparent text-[10px] md:text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
               />
             </div>
-            <button 
+            <button
               onClick={downloadReport}
               className="bg-slate-900 text-white px-3 py-2 md:px-4 md:py-2 rounded-lg flex items-center gap-2 hover:bg-slate-800 transition-all shadow active:scale-95 h-[36px] md:h-[42px]"
             >
-              <svg className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <svg className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               <span className="text-[10px] md:text-xs font-bold font-urdu">رپورٹ</span>
             </button>
           </div>
@@ -201,13 +201,13 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
           </div>
 
           {/* Bottom Right: New Record Button */}
-          <button 
+          <button
             onClick={onAdd}
             className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg md:rounded-xl shadow-lg transition-all active:scale-95 flex flex-col items-center justify-center h-[52px] md:h-full gap-0.5 group"
           >
             <div className="flex items-center gap-2 leading-none">
               <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">New Entry</span>
-              <svg className="w-3 h-3 md:w-4 md:h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
+              <svg className="w-3 h-3 md:w-4 md:h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
             </div>
             <span className="font-urdu text-sm md:text-base leading-none">(نیا ریکارڈ)</span>
           </button>
@@ -219,14 +219,15 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
         <div className="divide-y divide-slate-50">
           {ledgerDays.map(dateStr => {
             const total = dailyTotals[dateStr] || 0;
-            const dayObj = new Date(dateStr);
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const dayObj = new Date(y, m - 1, d);
             const dayName = dayObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
             const dayNum = dayObj.getDate();
             const isToday = new Date().toISOString().split('T')[0] === dateStr;
             const targetPath = isExpense ? `/expenses/${dateStr}` : `/receipts/${dateStr}`;
-            
+
             return (
-              <button 
+              <button
                 key={dateStr}
                 ref={isToday ? todayRef : null}
                 onClick={() => navigate(targetPath)}
@@ -267,7 +268,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
                     <div className="w-8 md:w-12 h-1 bg-slate-100 rounded-full opacity-30"></div>
                   )}
                   <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-white transition-colors">
-                    <svg className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-300 group-hover:text-slate-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"/></svg>
+                    <svg className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-300 group-hover:text-slate-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
                   </div>
                 </div>
               </button>
