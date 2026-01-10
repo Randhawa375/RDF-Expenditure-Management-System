@@ -31,7 +31,7 @@ const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
           <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
             <Link to="/" className="flex flex-col items-start group">
               <span className="font-black text-slate-900 tracking-tighter text-lg sm:text-xl leading-none max-w-[200px] sm:max-w-none">
-                Randhawa Dairy Expenditure Management System<span className="text-indigo-600"></span> 
+                Randhawa Dairy Expenditure Management System<span className="text-indigo-600"></span>
               </span>
               <div className="flex items-center gap-2 mt-1">
                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
@@ -55,7 +55,7 @@ const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
               </svg>
             </button>
           </div>
-          
+
           {/* Navigation Items */}
           <div className="flex items-center gap-1 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0 justify-center md:justify-end">
             {navItems.map((item) => {
@@ -64,11 +64,10 @@ const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-0.5 whitespace-nowrap ${
-                    isActive
+                  className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-0.5 whitespace-nowrap ${isActive
                       ? 'bg-slate-900 text-white shadow-lg'
                       : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   <span className="uppercase tracking-widest leading-none">{item.label}</span>
                   <span className="text-[9px] font-urdu opacity-70 leading-none">{item.urdu}</span>
@@ -83,37 +82,69 @@ const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
 };
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(db.getCurrentUser());
+  const [user, setUser] = useState<User | null>(null); // Initial state null
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [defaultDate, setDefaultDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [forcedType, setForcedType] = useState<TransactionType | undefined>(undefined);
 
   useEffect(() => {
-    if (user) {
-      setTransactions(db.getTransactions());
-    }
+    const checkUser = async () => {
+      try {
+        const currentUser = await db.getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Error checking user session:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkUser();
+  }, []);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      if (user) {
+        setIsLoading(true);
+        const data = await db.getTransactions();
+        setTransactions(data);
+        setIsLoading(false);
+      }
+    };
+    fetchTransactions();
   }, [user]);
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
     if (window.confirm('Are you sure you want to Logout? کیا آپ واقعی لاگ آؤٹ کرنا چاہتے ہیں؟')) {
-      db.logout();
+      await db.logout();
       setUser(null);
+      setTransactions([]);
     }
   }, []);
 
-  const handleSaveTransaction = (transaction: Transaction) => {
-    db.saveTransaction(transaction);
-    setTransactions(db.getTransactions());
-    setEditingTransaction(null);
-    setIsModalOpen(false);
+  const handleSaveTransaction = async (transaction: Transaction) => {
+    try {
+      await db.saveTransaction(transaction);
+      const data = await db.getTransactions();
+      setTransactions(data);
+      setEditingTransaction(null);
+      setIsModalOpen(false);
+    } catch (error) {
+      alert('Error saving transaction: ' + (error as Error).message);
+    }
   };
 
-  const handleDeleteTransaction = (id: string) => {
+  const handleDeleteTransaction = async (id: string) => {
     if (window.confirm('Delete record? کیا آپ اسے حذف کرنا چاہتے ہیں؟')) {
-      db.deleteTransaction(id);
-      setTransactions(db.getTransactions());
+      try {
+        await db.deleteTransaction(id);
+        const data = await db.getTransactions();
+        setTransactions(data);
+      } catch (error) {
+        console.error("Error deleting:", error);
+      }
     }
   };
 
@@ -127,7 +158,11 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <div className="min-h-screen bg-[#fcfdfe] text-slate-900 selection:bg-indigo-100 antialiased font-inter">
-        {!user ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          </div>
+        ) : !user ? (
           <Auth onLogin={(loggedInUser) => setUser(loggedInUser)} />
         ) : (
           <>
@@ -135,49 +170,49 @@ const App: React.FC = () => {
             <main className="max-w-7xl mx-auto px-4 py-6 md:py-10 pb-24">
               <Routes>
                 <Route path="/" element={<Dashboard transactions={transactions} />} />
-                <Route 
-                  path="/expenses" 
+                <Route
+                  path="/expenses"
                   element={
-                    <TransactionsPage 
-                      type={TransactionType.EXPENSE} 
-                      transactions={transactions} 
+                    <TransactionsPage
+                      type={TransactionType.EXPENSE}
+                      transactions={transactions}
                       onAdd={() => openAddModal(undefined, TransactionType.EXPENSE)}
                     />
-                  } 
+                  }
                 />
-                <Route 
-                  path="/expenses/:date" 
+                <Route
+                  path="/expenses/:date"
                   element={
-                    <DailyLedgerPage 
-                      type={TransactionType.EXPENSE} 
-                      transactions={transactions} 
+                    <DailyLedgerPage
+                      type={TransactionType.EXPENSE}
+                      transactions={transactions}
                       onEdit={(t) => { setEditingTransaction(t); setForcedType(undefined); setIsModalOpen(true); }}
                       onDelete={handleDeleteTransaction}
                       onAdd={(date) => openAddModal(date, TransactionType.EXPENSE)}
                     />
-                  } 
+                  }
                 />
-                <Route 
-                  path="/receipts" 
+                <Route
+                  path="/receipts"
                   element={
-                    <TransactionsPage 
-                      type={TransactionType.INCOME} 
-                      transactions={transactions} 
+                    <TransactionsPage
+                      type={TransactionType.INCOME}
+                      transactions={transactions}
                       onAdd={() => openAddModal(undefined, TransactionType.INCOME)}
                     />
-                  } 
+                  }
                 />
-                <Route 
-                  path="/receipts/:date" 
+                <Route
+                  path="/receipts/:date"
                   element={
-                    <DailyLedgerPage 
-                      type={TransactionType.INCOME} 
-                      transactions={transactions} 
+                    <DailyLedgerPage
+                      type={TransactionType.INCOME}
+                      transactions={transactions}
                       onEdit={(t) => { setEditingTransaction(t); setForcedType(undefined); setIsModalOpen(true); }}
                       onDelete={handleDeleteTransaction}
                       onAdd={(date) => openAddModal(date, TransactionType.INCOME)}
                     />
-                  } 
+                  }
                 />
                 <Route path="/reports" element={<Reports transactions={transactions} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />

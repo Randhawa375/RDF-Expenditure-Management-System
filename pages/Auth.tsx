@@ -11,56 +11,44 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
-    username: '',
+    email: '',
     password: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setIsLoading(true);
 
-    if (isLogin) {
-      // Login Logic
-      const users = db.getUsers();
-      const user = users.find(u => u.username === formData.username && u.password === formData.password);
-      if (user) {
-        db.setCurrentUser(user);
+    try {
+      if (isLogin) {
+        // Login Logic
+        const user = await db.signIn(formData.email, formData.password);
         onLogin(user);
       } else {
-        setError('Invalid username or password. (غلط صارف نام یا پاس ورڈ)');
-      }
-    } else {
-      // Signup Logic
-      if (!formData.name || !formData.username || !formData.password) {
-        setError('Please fill all fields. (براہ کرم تمام خانے پُر کریں)');
-        return;
-      }
-      
-      const users = db.getUsers();
-      if (users.find(u => u.username === formData.username)) {
-        setError('Username already exists. (صارف نام پہلے سے موجود ہے)');
-        return;
-      }
+        // Signup Logic
+        if (!formData.name || !formData.email || !formData.password) {
+          throw new Error('Please fill all fields. (براہ کرم تمام خانے پُر کریں)');
+        }
 
-      const newUser: User = {
-        id: crypto.randomUUID(),
-        name: formData.name,
-        username: formData.username,
-        password: formData.password
-      };
+        await db.signUp(formData.email, formData.password, formData.name);
 
-      // Save user to DB but DO NOT set current session
-      db.saveUser(newUser);
-      
-      // Provide success feedback and switch to login
-      setSuccess('Account created successfully! Please login. (اکاؤنٹ بن گیا ہے! براہ کرم لاگ ان کریں)');
-      setIsLogin(true);
-      
-      // Clear password for security, keep username for convenience
-      setFormData(prev => ({ ...prev, password: '' }));
+        // Provide success feedback and switch to login
+        setSuccess('Account created! Please check email to confirm (if enabled) or login. (اکاؤنٹ بن گیا ہے! براہ کرم لاگ ان کریں)');
+        setIsLogin(true);
+
+        // Clear password for security
+        setFormData(prev => ({ ...prev, password: '' }));
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'An error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -72,7 +60,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           <h1 className="text-3xl font-black text-slate-900 tracking-tighter leading-tight">
             Randhawa Dairy Expenditure Management System
           </h1>
-         
+
         </div>
 
         {/* Auth Card */}
@@ -100,14 +88,14 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             )}
 
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Username (صارف نام)</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Email (ای میل)</label>
               <input
-                type="text"
+                type="email"
                 required
-                placeholder="Enter Username"
+                placeholder="name@example.com"
                 className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-bold"
-                value={formData.username}
-                onChange={e => setFormData({ ...formData, username: e.target.value })}
+                value={formData.email}
+                onChange={e => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
 
@@ -137,21 +125,22 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
             <button
               type="submit"
-              className="w-full py-4 bg-indigo-600 text-white rounded-2xl text-lg font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98] transition-all flex flex-col items-center gap-0.5"
+              disabled={isLoading}
+              className="w-full py-4 bg-indigo-600 text-white rounded-2xl text-lg font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98] transition-all flex flex-col items-center gap-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span>{isLogin ? 'Enter System' : 'Register Account'}</span>
+              <span>{isLoading ? 'Processing...' : (isLogin ? 'Enter System' : 'Register Account')}</span>
               <span className="font-urdu text-sm opacity-70 leading-none">
-                {isLogin ? 'سسٹم میں داخل ہوں' : 'اکاؤنٹ بنائیں'}
+                {isLoading ? '...جاری ہے' : (isLogin ? 'سسٹم میں داخل ہوں' : 'اکاؤنٹ بنائیں')}
               </span>
             </button>
           </form>
 
           <button
             type="button"
-            onClick={() => { 
-              setIsLogin(!isLogin); 
-              setError(''); 
-              setSuccess(''); 
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError('');
+              setSuccess('');
             }}
             className="mt-6 text-slate-400 hover:text-indigo-600 transition-colors flex flex-col items-center group"
           >
