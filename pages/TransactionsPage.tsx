@@ -14,11 +14,11 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
   const navigate = useNavigate();
   const todayRef = useRef<HTMLButtonElement>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    const now = new Date();
-    return [
-      now.getFullYear(),
-      String(now.getMonth() + 1).padStart(2, '0')
-    ].join('-');
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Karachi',
+      year: 'numeric',
+      month: '2-digit'
+    }).format(new Date()).slice(0, 7);
   });
 
   useEffect(() => {
@@ -230,11 +230,14 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
             const dayName = dayObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
             const dayNum = dayObj.getDate();
             const now = new Date();
-            const localISODate = [
-              now.getFullYear(),
-              String(now.getMonth() + 1).padStart(2, '0'),
-              String(now.getDate()).padStart(2, '0')
-            ].join('-');
+            // Force Pakistan Timezone (Asia/Karachi)
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+              timeZone: 'Asia/Karachi',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            });
+            const localISODate = formatter.format(now);
             const isToday = localISODate === dateStr;
             const targetPath = isExpense ? `/expenses/${dateStr}` : `/receipts/${dateStr}`;
 

@@ -24,8 +24,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   const [formData, setFormData] = useState<Partial<Transaction>>({
     type: defaultType,
     date: defaultDate || (() => {
-      const now = new Date();
-      return new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Karachi',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date());
     })(),
     amount: 0,
     description: '',
@@ -38,8 +42,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
       setFormData({
         type: defaultType,
         date: defaultDate || (() => {
-          const now = new Date();
-          return new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+          return new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Karachi',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(new Date());
         })(),
         amount: 0,
         description: ''
