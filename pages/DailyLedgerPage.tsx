@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType } from '../types';
 import { jsPDF } from 'jspdf';
@@ -15,6 +15,8 @@ interface DailyLedgerPageProps {
 const DailyLedgerPage: React.FC<DailyLedgerPageProps> = ({ type, transactions, onEdit, onDelete, onAdd }) => {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
+
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const dayItems = useMemo(() => {
     return transactions
@@ -159,16 +161,22 @@ const DailyLedgerPage: React.FC<DailyLedgerPageProps> = ({ type, transactions, o
         {dayItems.length > 0 ? (
           dayItems.map((t) => (
             <div key={t.id} className="bg-white px-6 py-4 rounded-2xl border border-slate-50 shadow-sm flex items-center justify-between group hover:border-slate-200 transition-all">
-              <div className="flex items-center gap-4 overflow-hidden">
+              <div className="flex items-center gap-4 overflow-hidden flex-1">
                 <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center ${isExpense ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 </div>
-                <div className="truncate">
-                  <div className="font-black text-slate-900 text-base tracking-tight truncate leading-tight">{t.description}</div>
-                  <div className="text-[8px] text-slate-300 uppercase tracking-widest font-black mt-0.5 leading-none">Record Detail</div>
+                <div
+                  className="overflow-hidden cursor-pointer"
+                  onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
+                >
+                  <div className={`font-black text-slate-900 text-base tracking-tight leading-tight ${expandedId === t.id ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
+                    {t.description}
+                  </div>
+                  <div className="text-[8px] text-slate-300 uppercase tracking-widest font-black mt-0.5 leading-none">
+                    {expandedId === t.id ? 'Click to collapse' : 'Click to expand'}
+                  </div>
                 </div>
               </div>
-
               <div className="flex items-center gap-6 shrink-0 ml-4">
                 <div className={`text-xl font-black ${accentText} leading-none`}>
                   {t.amount.toLocaleString()}
