@@ -186,16 +186,14 @@ const App: React.FC = () => {
             <main className="max-w-7xl mx-auto px-4 py-6 md:py-10 pb-24">
               <Routes>
                 <Route path="/" element={<Dashboard transactions={transactions} personExpenses={personExpenses} />} />
-                <Route
-                  <Route
-                  path="/expenses"
-                  element={
-                    <TransactionsPage
-                      type={TransactionType.EXPENSE}
-                      transactions={transactions}
-                      onAdd={() => openAddModal(undefined, TransactionType.EXPENSE)}
-                    />
-                  }
+                path="/expenses"
+                element={
+                  <TransactionsPage
+                    type={TransactionType.EXPENSE}
+                    transactions={transactions}
+                    onAdd={() => openAddModal(undefined, TransactionType.EXPENSE)}
+                  />
+                }
                 />
                 <Route
                   path="/expenses/:date"
