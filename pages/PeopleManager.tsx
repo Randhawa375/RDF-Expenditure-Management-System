@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../services/db';
-import { Person } from '../types';
+import { Person, PersonExpense } from '../types';
+import { jsPDF } from 'jspdf';
 
 const PeopleManager: React.FC = () => {
     const [persons, setPersons] = useState<Person[]>([]);
+    const [allExpenses, setAllExpenses] = useState<PersonExpense[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currentMonth] = useState(() => new Date().toISOString().slice(0, 7));
 
     // Form State
     const [name, setName] = useState('');
@@ -15,19 +18,71 @@ const PeopleManager: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        fetchPersons();
+        fetchData();
     }, []);
 
-    const fetchPersons = async () => {
+    const fetchData = async () => {
         setIsLoading(true);
         try {
-            const data = await db.getPersons();
-            setPersons(data);
+            const [personsData, expensesData] = await Promise.all([
+                db.getPersons(),
+                db.getAllPersonExpenses()
+            ]);
+            setPersons(personsData);
+            setAllExpenses(expensesData);
         } catch (error) {
-            console.error("Error fetching persons:", error);
+            console.error("Error fetching data:", error);
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const monthlyTotal = useMemo(() => {
+        return allExpenses
+            .filter(e => e.date.startsWith(currentMonth))
+            .reduce((sum, e) => sum + e.amount, 0);
+    }, [allExpenses, currentMonth]);
+
+    const downloadReport = () => {
+        const doc = new jsPDF();
+        const timestamp = new Date().toLocaleString();
+
+        doc.setFontSize(20);
+        doc.text('Staff / Persons Report', 14, 22);
+
+        doc.setFontSize(10);
+        doc.text(`Generated: ${timestamp}`, 14, 30);
+        doc.text(`Current Month Total Expenses: PKR ${monthlyTotal.toLocaleString()}`, 14, 36);
+
+        let y = 50;
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Staff List', 14, 45);
+
+        doc.setFontSize(10);
+        doc.setFillColor(240, 240, 240);
+        doc.rect(14, y - 6, 180, 8, 'F');
+        doc.text('Name', 16, y);
+        doc.text('Salary Limit', 80, y);
+        doc.text('Prev Balance', 120, y);
+        doc.text('Total Expense (This Month)', 160, y, { align: 'right' });
+
+        y += 10;
+        doc.setFont('helvetica', 'normal');
+
+        persons.forEach((p, i) => {
+            const personExpenses = allExpenses
+                .filter(e => e.person_id === p.id && e.date.startsWith(currentMonth))
+                .reduce((sum, e) => sum + e.amount, 0);
+
+            doc.text(p.name, 16, y);
+            doc.text(p.salary_limit.toLocaleString(), 80, y);
+            doc.text(p.previous_balance.toLocaleString(), 120, y);
+            doc.text(personExpenses.toLocaleString(), 190, y, { align: 'right' }); // Adjusted align to right
+            y += 8;
+        });
+
+        doc.save('Staff_Report.pdf');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -42,7 +97,7 @@ const PeopleManager: React.FC = () => {
             });
             setIsModalOpen(false);
             resetForm();
-            fetchPersons();
+            fetchData();
         } catch (error) {
             alert('Error saving person: ' + (error as Error).message);
         } finally {
@@ -55,7 +110,7 @@ const PeopleManager: React.FC = () => {
         if (window.confirm('Delete this person and all their records? This cannot be undone.')) {
             try {
                 await db.deletePerson(id);
-                fetchPersons();
+                fetchData();
             } catch (error) {
                 console.error("Error deleting person:", error);
             }
@@ -79,15 +134,38 @@ const PeopleManager: React.FC = () => {
                         Manage staff members and their expense ledgers. (اسٹاف اور ان کے اخراجات کا انتظام کریں)
                     </p>
                 </div>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow hover:brightness-105 active:scale-95 transition-all"
-                >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Person (نیا فرد شامل کریں)
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={downloadReport}
+                        className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow hover:brightness-105 active:scale-95 transition-all"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Report
+                    </button>
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow hover:brightness-105 active:scale-95 transition-all"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Person (نیا فرد شامل کریں)
+                    </button>
+                </div>
+            </div>
+
+            {/* Total Expense Card */}
+            <div className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                </div>
+                <div className="relative z-10">
+                    <p className="text-indigo-200 font-bold uppercase tracking-widest text-xs mb-1">Total Staff Expenses (This Month)</p>
+                    <h2 className="text-4xl font-black tracking-tight">PKR {monthlyTotal.toLocaleString()}</h2>
+                    <p className="text-indigo-300 font-urdu mt-2 text-lg">اس مہینے کا کل اسٹاف خرچہ</p>
+                </div>
             </div>
 
             {isLoading ? (
@@ -105,46 +183,56 @@ const PeopleManager: React.FC = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {persons.map((person) => (
-                        <Link
-                            key={person.id}
-                            to={`/people/${person.id}`}
-                            className="group relative bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all hover:border-indigo-100"
-                        >
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h3 className="font-bold text-lg text-slate-900 group-hover:text-indigo-600 transition-colors">
-                                        {person.name}
-                                    </h3>
-                                    <div className="mt-2 space-y-1 text-sm text-slate-500">
-                                        <p className="flex items-center gap-2">
-                                            <span className="w-20 text-[10px] uppercase tracking-wider font-black opacity-70">Limit (حد):</span>
-                                            <span className="font-mono font-bold text-slate-700">{person.salary_limit.toLocaleString()}</span>
-                                        </p>
-                                        <p className="flex items-center gap-2">
-                                            <span className="w-20 text-[10px] uppercase tracking-wider font-black opacity-70">Bal (بقیہ):</span>
-                                            <span className="font-mono font-bold text-slate-700">{person.previous_balance.toLocaleString()}</span>
-                                        </p>
+                    {persons.map((person) => {
+                        const personExpenses = allExpenses
+                            .filter(e => e.person_id === person.id && e.date.startsWith(currentMonth))
+                            .reduce((sum, e) => sum + e.amount, 0);
+
+                        return (
+                            <Link
+                                key={person.id}
+                                to={`/people/${person.id}`}
+                                className="group relative bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all hover:border-indigo-100"
+                            >
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h3 className="font-bold text-lg text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                            {person.name}
+                                        </h3>
+                                        <div className="mt-2 space-y-1 text-sm text-slate-500">
+                                            <p className="flex items-center gap-2">
+                                                <span className="w-20 text-[10px] uppercase tracking-wider font-black opacity-70">Limit (حد):</span>
+                                                <span className="font-mono font-bold text-slate-700">{person.salary_limit.toLocaleString()}</span>
+                                            </p>
+                                            <p className="flex items-center gap-2">
+                                                <span className="w-20 text-[10px] uppercase tracking-wider font-black opacity-70">Bal (بقیہ):</span>
+                                                <span className="font-mono font-bold text-slate-700">{person.previous_balance.toLocaleString()}</span>
+                                            </p>
+                                            <p className="flex items-center gap-2 text-rose-600">
+                                                <span className="w-20 text-[10px] uppercase tracking-wider font-black opacity-70">Exp (خرچہ):</span>
+                                                <span className="font-mono font-bold">{personExpenses.toLocaleString()}</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-indigo-50 transition-colors">
+                                        <svg className="w-5 h-5 text-slate-400 group-hover:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
                                     </div>
                                 </div>
-                                <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-indigo-50 transition-colors">
-                                    <svg className="w-5 h-5 text-slate-400 group-hover:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </div>
-                            </div>
 
-                            <button
-                                onClick={(e) => handleDelete(e, person.id)}
-                                className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
-                                title="Delete Person"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                        </Link>
-                    ))}
+                                <button
+                                    onClick={(e) => handleDelete(e, person.id)}
+                                    className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
+                                    title="Delete Person"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </Link>
+                        );
+                    })}
                 </div>
             )}
 

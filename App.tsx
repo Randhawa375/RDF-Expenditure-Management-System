@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { Transaction, TransactionType, User } from './types';
+import { Transaction, TransactionType, User, PersonExpense } from './types';
 import { db } from './services/db';
 import TransactionModal from './components/TransactionModal';
 import Dashboard from './pages/Dashboard';
@@ -87,6 +87,7 @@ const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null); // Initial state null
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [personExpenses, setPersonExpenses] = useState<PersonExpense[]>([]); // New state
   const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -118,8 +119,12 @@ const App: React.FC = () => {
     const fetchTransactions = async () => {
       if (user) {
         setIsLoading(true);
-        const data = await db.getTransactions();
-        setTransactions(data);
+        const [transData, personExpData] = await Promise.all([
+          db.getTransactions(),
+          db.getAllPersonExpenses()
+        ]);
+        setTransactions(transData);
+        setPersonExpenses(personExpData);
         setIsLoading(false);
       }
     };
@@ -131,6 +136,7 @@ const App: React.FC = () => {
       await db.logout();
       setUser(null);
       setTransactions([]);
+      setPersonExpenses([]);
     }
   }, []);
 
@@ -179,8 +185,9 @@ const App: React.FC = () => {
             <Navigation user={user} onLogout={handleLogout} />
             <main className="max-w-7xl mx-auto px-4 py-6 md:py-10 pb-24">
               <Routes>
-                <Route path="/" element={<Dashboard transactions={transactions} />} />
+                <Route path="/" element={<Dashboard transactions={transactions} personExpenses={personExpenses} />} />
                 <Route
+                  <Route
                   path="/expenses"
                   element={
                     <TransactionsPage

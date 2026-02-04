@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { db } from '../services/db';
 import { Person, PersonExpense } from '../types';
+import { jsPDF } from 'jspdf';
 
 const PersonLedgerPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -53,6 +55,49 @@ const PersonLedgerPage: React.FC = () => {
         if (!person) return 0;
         return person.salary_limit - totalMonthlyExpense;
     }, [person, totalMonthlyExpense]);
+
+    const downloadReport = () => {
+        const doc = new jsPDF();
+        const timestamp = new Date().toLocaleString();
+
+        doc.setFontSize(20);
+        doc.text(`Ledger: ${person.name} `, 14, 22);
+
+        doc.setFontSize(10);
+        doc.text(`Generated: ${timestamp} `, 14, 30);
+        doc.text(`Salary Limit: ${person.salary_limit.toLocaleString()} `, 14, 36);
+        doc.text(`Previous Balance: ${person.previous_balance.toLocaleString()} `, 14, 42);
+        doc.text(`Current Month Total: ${totalMonthlyExpense.toLocaleString()} `, 14, 48);
+
+        let y = 60;
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Transaction History', 14, 55);
+
+        doc.setFontSize(10);
+        doc.setFillColor(240, 240, 240);
+        doc.rect(14, y - 6, 180, 8, 'F');
+        doc.text('Date', 16, y);
+        doc.text('Description', 50, y);
+        doc.text('Amount', 170, y, { align: 'right' });
+
+        y += 10;
+        doc.setFont('helvetica', 'normal');
+
+        expenses.forEach((e, i) => {
+            if (y > 280) {
+                doc.addPage();
+                y = 20;
+            }
+            doc.text(e.date, 16, y);
+            const desc = e.description.length > 50 ? e.description.substring(0, 47) + '...' : e.description;
+            doc.text(desc, 50, y);
+            doc.text(e.amount.toLocaleString(), 170, y, { align: 'right' });
+            y += 8;
+        });
+
+        doc.save(`${person.name} _Ledger.pdf`);
+    };
 
     const handleAddExpense = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -129,15 +174,26 @@ const PersonLedgerPage: React.FC = () => {
                         onChange={(e) => setSelectedMonth(e.target.value)}
                         className="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 shadow-sm"
                     />
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow hover:brightness-105 active:scale-95 transition-all"
-                    >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        New Entry (نیا ریکارڈ)
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={downloadReport}
+                            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow hover:brightness-105 active:scale-95 transition-all"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Report
+                        </button>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow hover:brightness-105 active:scale-95 transition-all"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Entry (نیا اندراج)
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -160,14 +216,14 @@ const PersonLedgerPage: React.FC = () => {
                 </div>
 
                 {/* Remaining Balance */}
-                <div className={`p-4 md:p-5 rounded-2xl border shadow-sm transition-colors ${isOverLimit ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'
-                    }`}>
-                    <p className={`text-[10px] uppercase tracking-widest font-black mb-1 ${isOverLimit ? 'text-rose-500' : 'text-emerald-500'
-                        }`}>
+                <div className={`p - 4 md: p - 5 rounded - 2xl border shadow - sm transition - colors ${isOverLimit ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'
+                    } `}>
+                    <p className={`text - [10px] uppercase tracking - widest font - black mb - 1 ${isOverLimit ? 'text-rose-500' : 'text-emerald-500'
+                        } `}>
                         {isOverLimit ? 'Over Limit (حد سے زیادہ)' : 'Remaining (باقی)'}
                     </p>
-                    <p className={`text-xl md:text-2xl font-black ${isOverLimit ? 'text-rose-600' : 'text-emerald-600'
-                        }`}>
+                    <p className={`text - xl md: text - 2xl font - black ${isOverLimit ? 'text-rose-600' : 'text-emerald-600'
+                        } `}>
                         {Math.abs(remainingBalance).toLocaleString()}
                     </p>
                 </div>
@@ -215,14 +271,14 @@ const PersonLedgerPage: React.FC = () => {
                                         </button>
                                     </div>
                                     <div
-                                        className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 cursor-pointer active:bg-slate-100"
+                                        className="overflow-hidden cursor-pointer transition-all duration-200"
                                         onClick={() => setExpandedId(expandedId === expense.id ? null : expense.id)}
                                     >
-                                        <p className={`text-sm text-slate-700 leading-relaxed font-medium ${expandedId === expense.id ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
-                                            {expense.description || <span className="text-slate-400 italic">No description</span>}
-                                        </p>
-                                        <p className="text-[9px] text-slate-300 font-black uppercase tracking-widest mt-1 text-right">
-                                            {expandedId === expense.id ? 'Collapse' : 'Expand'}
+                                        <div className={`font - medium text - slate - 900 ${expandedId === expense.id ? 'whitespace-pre-wrap break-words' : 'truncate'} `}>
+                                            {expense.description}
+                                        </div>
+                                        <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest mt-0.5">
+                                            {expandedId === expense.id ? 'Show Less' : 'Show More'}
                                         </p>
                                     </div>
                                 </div>

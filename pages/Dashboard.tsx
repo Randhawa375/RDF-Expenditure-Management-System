@@ -1,14 +1,15 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Transaction, TransactionType } from '../types';
+import { Transaction, TransactionType, PersonExpense } from '../types';
 import { jsPDF } from 'jspdf';
 
 interface DashboardProps {
   transactions: Transaction[];
+  personExpenses?: PersonExpense[];
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
+const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = [] }) => {
   const navigate = useNavigate();
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     return new Intl.DateTimeFormat('en-CA', {
@@ -22,13 +23,26 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
     return transactions.filter(t => t.date.startsWith(selectedMonth));
   }, [transactions, selectedMonth]);
 
+  const filteredPersonExpenses = useMemo(() => {
+    return personExpenses.filter(e => e.date.startsWith(selectedMonth));
+  }, [personExpenses, selectedMonth]);
+
   const stats = useMemo(() => {
-    return filteredTransactions.reduce((acc, t) => {
+    const mainStats = filteredTransactions.reduce((acc, t) => {
       if (t.type === TransactionType.INCOME) acc.totalIncome += t.amount;
       else acc.totalExpenses += t.amount;
       return acc;
     }, { totalIncome: 0, totalExpenses: 0 });
-  }, [filteredTransactions]);
+
+    const personTotalExpense = filteredPersonExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+    return {
+      totalIncome: mainStats.totalIncome,
+      totalExpenses: mainStats.totalExpenses + personTotalExpense,
+      mainExpenses: mainStats.totalExpenses,
+      personExpenses: personTotalExpense
+    };
+  }, [filteredTransactions, filteredPersonExpenses]);
 
   const profit = stats.totalIncome - stats.totalExpenses;
 
@@ -76,6 +90,15 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
       else doc.setTextColor(225, 29, 72);
       doc.text(`PKR ${profit.toLocaleString()}`, 140, 78);
 
+      // Note about person expenses inclusion
+      doc.setTextColor(100, 116, 139);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+
+      if (stats.personExpenses > 0) {
+        doc.text(`* Includes PKR ${stats.personExpenses.toLocaleString()} from Staff Expenses`, 85, 85);
+      }
+
       let y = 110;
       doc.setTextColor(15, 23, 42);
       doc.setFontSize(12);
@@ -96,9 +119,20 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(30, 41, 59);
 
-      const sorted = [...filteredTransactions].sort((a, b) => a.date.localeCompare(b.date));
+      // Merge and sort all transactions + person expenses for the report
+      const allItems = [
+        ...filteredTransactions.map(t => ({ ...t, displayType: t.type === TransactionType.INCOME ? 'Received' : 'Expense' })),
+        ...filteredPersonExpenses.map(e => ({
+          id: e.id,
+          date: e.date,
+          amount: e.amount,
+          description: `(Staff) ${e.description}`,
+          type: TransactionType.EXPENSE,
+          displayType: 'Staff Exp'
+        }))
+      ].sort((a, b) => a.date.localeCompare(b.date));
 
-      sorted.forEach((t, index) => {
+      allItems.forEach((t, index) => {
         if (y > 275) {
           doc.addPage();
           y = 30;
@@ -120,7 +154,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
         }
 
         doc.text(t.date, 25, y);
-        doc.text(t.type === TransactionType.INCOME ? 'Received' : 'Expense', 45, y);
+        doc.text(t.displayType, 45, y);
         const desc = t.description.length > 50 ? t.description.substring(0, 47) + '...' : t.description;
         doc.text(desc, 70, y);
 

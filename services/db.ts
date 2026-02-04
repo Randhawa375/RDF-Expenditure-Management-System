@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Transaction, User, TransactionType } from '../types';
+import { Transaction, User, TransactionType, Person, PersonExpense } from '../types';
 
 export const db = {
   // Transaction Methods
@@ -155,6 +155,22 @@ export const db = {
 
     if (error) {
       console.error('Error fetching person expenses:', error);
+      return [];
+    }
+    return data as PersonExpense[];
+  },
+
+  getAllPersonExpenses: async (): Promise<PersonExpense[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('person_expenses')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching all person expenses:', error);
       return [];
     }
     return data as PersonExpense[];
