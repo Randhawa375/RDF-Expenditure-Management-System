@@ -9,6 +9,8 @@ import TransactionsPage from './pages/TransactionsPage';
 import DailyLedgerPage from './pages/DailyLedgerPage';
 import Reports from './pages/Reports';
 import Auth from './pages/Auth';
+import PeopleManager from './pages/PeopleManager';
+import PersonLedgerPage from './pages/PersonLedgerPage';
 
 interface NavigationProps {
   user: User;
@@ -20,7 +22,8 @@ const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
   const navItems = [
     { path: '/', label: 'Overview', urdu: 'جائزہ' },
     { path: '/expenses', label: 'Expenses', urdu: 'اخراجات' },
-    { path: '/receipts', label: 'Payment Received', urdu: 'ادائیگی موصول ہوئی' }
+    { path: '/receipts', label: 'Payment Received', urdu: 'ادائیگی موصول ہوئی' },
+    { path: '/people', label: 'Persons', urdu: 'افراد' }
   ];
 
   return (
@@ -221,6 +224,8 @@ const App: React.FC = () => {
                     />
                   }
                 />
+                <Route path="/people" element={<PeopleManager />} />
+                <Route path="/people/:id" element={<PersonLedgerPage />} />
                 <Route path="/reports" element={<Reports transactions={transactions} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
