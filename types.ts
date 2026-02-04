@@ -27,3 +27,22 @@ export interface MonthlySummary {
   netBalance: number;
   month: string;
 }
+
+export interface Person {
+  id: string;
+  user_id?: string;
+  name: string;
+  previous_balance: number;
+  salary_limit: number;
+  created_at?: string;
+}
+
+export interface PersonExpense {
+  id: string;
+  person_id: string;
+  user_id?: string;
+  date: string;
+  description: string;
+  amount: number;
+  created_at?: string;
+}

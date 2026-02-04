@@ -100,5 +100,90 @@ export const db = {
   logout: async (): Promise<void> => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+  },
+
+  // Person Methods
+  getPersons: async (): Promise<Person[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('persons')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching persons:', error);
+      return [];
+    }
+    return data as Person[];
+  },
+
+  savePerson: async (person: Person): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('persons')
+      .upsert({
+        id: person.id,
+        user_id: user.id,
+        name: person.name,
+        previous_balance: person.previous_balance,
+        salary_limit: person.salary_limit
+      });
+
+    if (error) throw error;
+  },
+
+  deletePerson: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('persons')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  // Person Expense Methods
+  getPersonExpenses: async (personId: string): Promise<PersonExpense[]> => {
+    const { data, error } = await supabase
+      .from('person_expenses')
+      .select('*')
+      .eq('person_id', personId)
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching person expenses:', error);
+      return [];
+    }
+    return data as PersonExpense[];
+  },
+
+  savePersonExpense: async (expense: PersonExpense): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('person_expenses')
+      .upsert({
+        id: expense.id,
+        person_id: expense.person_id,
+        user_id: user.id,
+        date: expense.date,
+        description: expense.description,
+        amount: expense.amount
+      });
+
+    if (error) throw error;
+  },
+
+  deletePersonExpense: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('person_expenses')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 };
