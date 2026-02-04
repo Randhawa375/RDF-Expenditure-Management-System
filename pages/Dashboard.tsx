@@ -205,8 +205,8 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
         </div>
       </div>
 
-      {/* Large Navigation Buttons - 1 column on mobile for better usability */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Large Navigation Buttons - 1 column on mobile, 3 on desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <button
           onClick={() => navigate('/receipts')}
           className="bg-white hover:bg-emerald-50 text-slate-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all flex flex-col md:flex-row gap-6 items-center group"
@@ -230,6 +230,19 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
           <div className="flex flex-col items-center md:items-start text-center md:text-left">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-2">Expense Dashboard</span>
             <span className="text-2xl md:text-3xl font-urdu font-black text-rose-600 leading-tight">خرچے کا کھاتہ</span>
+          </div>
+        </button>
+
+        <button
+          onClick={() => navigate('/people')}
+          className="bg-white hover:bg-indigo-50 text-slate-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all flex flex-col md:flex-row gap-6 items-center group"
+        >
+          <div className="bg-indigo-600 text-white p-5 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-indigo-200">
+            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+          </div>
+          <div className="flex flex-col items-center md:items-start text-center md:text-left">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-2">Person Dashboard</span>
+            <span className="text-2xl md:text-3xl font-urdu font-black text-indigo-600 leading-tight">افراد کا کھاتہ</span>
           </div>
         </button>
       </div>

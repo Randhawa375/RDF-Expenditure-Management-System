@@ -75,18 +75,18 @@ const PeopleManager: React.FC = () => {
                     <h1 className="text-2xl font-black text-slate-900 tracking-tight">
                         Staff / Persons
                     </h1>
-                    <p className="text-slate-500 mt-1">
-                        Manage staff members and their expense ledgers.
+                    <p className="text-slate-500 mt-1 font-urdu">
+                        Manage staff members and their expense ledgers. (اسٹاف اور ان کے اخراجات کا انتظام کریں)
                     </p>
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow hover:brightness-105 active:scale-95 transition-all"
                 >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Add Person
+                    Add Person (نیا فرد شامل کریں)
                 </button>
             </div>
 
@@ -118,12 +118,12 @@ const PeopleManager: React.FC = () => {
                                     </h3>
                                     <div className="mt-2 space-y-1 text-sm text-slate-500">
                                         <p className="flex items-center gap-2">
-                                            <span className="w-20 text-xs uppercase tracking-wider font-semibold opacity-70">Limit:</span>
-                                            <span className="font-mono text-slate-700">{person.salary_limit.toLocaleString()}</span>
+                                            <span className="w-20 text-[10px] uppercase tracking-wider font-black opacity-70">Limit (حد):</span>
+                                            <span className="font-mono font-bold text-slate-700">{person.salary_limit.toLocaleString()}</span>
                                         </p>
                                         <p className="flex items-center gap-2">
-                                            <span className="w-20 text-xs uppercase tracking-wider font-semibold opacity-70">Balance:</span>
-                                            <span className="font-mono text-slate-700">{person.previous_balance.toLocaleString()}</span>
+                                            <span className="w-20 text-[10px] uppercase tracking-wider font-black opacity-70">Bal (بقیہ):</span>
+                                            <span className="font-mono font-bold text-slate-700">{person.previous_balance.toLocaleString()}</span>
                                         </p>
                                     </div>
                                 </div>
@@ -150,22 +150,25 @@ const PeopleManager: React.FC = () => {
 
             {/* Add Person Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                            <h2 className="font-bold text-lg text-slate-900">Add New Person</h2>
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
+                        <div className="bg-slate-900 px-6 py-5 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-xl font-black text-white tracking-tight">Add Person</h2>
+                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">نیا فرد شامل کریں</p>
+                            </div>
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="p-1 rounded-full hover:bg-slate-200 transition-colors"
+                                className="p-2 bg-white/10 text-white hover:bg-white/20 rounded-xl transition-colors"
                             >
-                                <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                        <form onSubmit={handleSubmit} className="p-6 space-y-5">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
                                     Name (نام)
                                 </label>
                                 <input
@@ -173,49 +176,52 @@ const PeopleManager: React.FC = () => {
                                     required
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
                                     placeholder="Enter person's name"
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">
-                                        Previous Balance
-                                        <span className="block text-[10px] text-slate-400 font-normal">If any</span>
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                        Previous Balance (سابقہ بیلنس)
                                     </label>
                                     <input
                                         type="number"
                                         value={previousBalance}
                                         onChange={(e) => setPreviousBalance(e.target.value)}
-                                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
                                         placeholder="0"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">
-                                        Salary Limit
-                                        <span className="block text-[10px] text-slate-400 font-normal">Monthly Limit</span>
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                        Salary Limit (حد)
                                     </label>
                                     <input
                                         type="number"
                                         value={salaryLimit}
                                         onChange={(e) => setSalaryLimit(e.target.value)}
-                                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
                                         placeholder="0"
                                     />
                                 </div>
                             </div>
 
-                            <div className="pt-2">
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-70 disabled:active:scale-100"
-                                >
-                                    {isSubmitting ? 'Adding...' : 'Add Person'}
-                                </button>
-                            </div>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4 rounded-xl shadow-xl shadow-slate-200 active:scale-95 transition-all text-sm uppercase tracking-widest disabled:opacity-70 disabled:active:scale-100 flex items-center justify-center gap-2"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        <span>Saving...</span>
+                                    </>
+                                ) : (
+                                    <span>Save Person (محفوظ کریں)</span>
+                                )}
+                            </button>
                         </form>
                     </div>
                 </div>

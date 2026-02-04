@@ -16,6 +16,7 @@ const PersonLedgerPage: React.FC = () => {
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) {
@@ -77,7 +78,7 @@ const PersonLedgerPage: React.FC = () => {
     };
 
     const handleDeleteExpense = async (expenseId: string) => {
-        if (window.confirm('Delete this expense?')) {
+        if (window.confirm('Delete this expense? کیا آپ اسے حذف کرنا چاہتے ہیں؟')) {
             try {
                 await db.deletePersonExpense(expenseId);
                 fetchData();
@@ -119,9 +120,6 @@ const PersonLedgerPage: React.FC = () => {
                         </Link>
                         <h1 className="text-2xl font-black text-slate-900 tracking-tight">{person.name}</h1>
                     </div>
-                    <p className="text-slate-500 text-sm ml-7">
-                        Monthly Expense Ledger
-                    </p>
                 </div>
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
@@ -133,37 +131,42 @@ const PersonLedgerPage: React.FC = () => {
                     />
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow hover:brightness-105 active:scale-95 transition-all"
                     >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
-                        Add Expense
+                        New Entry (نیا ریکارڈ)
                     </button>
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                    <p className="text-xs uppercase tracking-wider font-semibold text-slate-400">Salary Limit</p>
-                    <p className="text-2xl font-black text-slate-900 mt-1">
-                        {person.salary_limit.toLocaleString()}
-                    </p>
-                </div>
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                    <p className="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Expenses ({selectedMonth})</p>
-                    <p className="text-2xl font-black text-slate-900 mt-1">
+            {/* Stats Cards - Compact Mobile View */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+                {/* Total Expense - Full width on mobile to emphasize */}
+                <div className="col-span-2 md:col-span-1 bg-white p-4 md:p-5 rounded-2xl border border-slate-100 shadow-sm">
+                    <p className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1">Total Expenses (کل خرچہ)</p>
+                    <p className="text-2xl md:text-3xl font-black text-slate-900">
                         {totalMonthlyExpense.toLocaleString()}
                     </p>
                 </div>
-                <div className={`p-5 rounded-2xl border shadow-sm transition-colors ${isOverLimit ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'
-                    }`}>
-                    <p className={`text-xs uppercase tracking-wider font-semibold ${isOverLimit ? 'text-rose-500' : 'text-emerald-500'
-                        }`}>
-                        {isOverLimit ? 'Limit Exceeded By' : 'Remaining Balance'}
+
+                {/* Salary Limit */}
+                <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-100 shadow-sm">
+                    <p className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1">Limit (حد)</p>
+                    <p className="text-xl md:text-2xl font-black text-slate-700">
+                        {person.salary_limit.toLocaleString()}
                     </p>
-                    <p className={`text-2xl font-black mt-1 ${isOverLimit ? 'text-rose-600' : 'text-emerald-600'
+                </div>
+
+                {/* Remaining Balance */}
+                <div className={`p-4 md:p-5 rounded-2xl border shadow-sm transition-colors ${isOverLimit ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'
+                    }`}>
+                    <p className={`text-[10px] uppercase tracking-widest font-black mb-1 ${isOverLimit ? 'text-rose-500' : 'text-emerald-500'
+                        }`}>
+                        {isOverLimit ? 'Over Limit (حد سے زیادہ)' : 'Remaining (باقی)'}
+                    </p>
+                    <p className={`text-xl md:text-2xl font-black ${isOverLimit ? 'text-rose-600' : 'text-emerald-600'
                         }`}>
                         {Math.abs(remainingBalance).toLocaleString()}
                     </p>
@@ -173,15 +176,16 @@ const PersonLedgerPage: React.FC = () => {
             {/* Expenses List */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                    <h3 className="font-bold text-slate-800">Expense History</h3>
-                    <span className="text-xs font-medium text-slate-400 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                    <h3 className="font-bold text-slate-800">Expense History (اخراجات کی تفصیل)</h3>
+                    <span className="text-[10px] font-black text-slate-400 bg-white px-2 py-1 rounded-lg border border-slate-200">
                         {monthlyExpenses.length} Records
                     </span>
                 </div>
 
                 {monthlyExpenses.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500">
-                        No expenses recorded for this month.
+                    <div className="p-12 text-center text-slate-500">
+                        <p className="mb-2">No expenses recorded for this month.</p>
+                        <p className="font-urdu opacity-70">اس مہینے کا کوئی خرچہ موجود نہیں ہے</p>
                     </div>
                 ) : (
                     <>
@@ -191,10 +195,10 @@ const PersonLedgerPage: React.FC = () => {
                                 <div key={expense.id} className="p-4 hover:bg-slate-50 transition-colors">
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-slate-900 text-lg">
+                                            <span className="font-black text-slate-900 text-lg">
                                                 {expense.amount.toLocaleString()}
                                             </span>
-                                            <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+                                            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">
                                                 {new Date(expense.date).toLocaleDateString('en-GB', {
                                                     weekday: 'short', day: 'numeric', month: 'short'
                                                 })}
@@ -210,9 +214,15 @@ const PersonLedgerPage: React.FC = () => {
                                             </svg>
                                         </button>
                                     </div>
-                                    <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 cursor-pointer active:bg-slate-100">
-                                        <p className="text-sm text-slate-700 leading-relaxed break-words font-medium">
+                                    <div
+                                        className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 cursor-pointer active:bg-slate-100"
+                                        onClick={() => setExpandedId(expandedId === expense.id ? null : expense.id)}
+                                    >
+                                        <p className={`text-sm text-slate-700 leading-relaxed font-medium ${expandedId === expense.id ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
                                             {expense.description || <span className="text-slate-400 italic">No description</span>}
+                                        </p>
+                                        <p className="text-[9px] text-slate-300 font-black uppercase tracking-widest mt-1 text-right">
+                                            {expandedId === expense.id ? 'Collapse' : 'Expand'}
                                         </p>
                                     </div>
                                 </div>
@@ -222,32 +232,35 @@ const PersonLedgerPage: React.FC = () => {
                         {/* Desktop View (Table) */}
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-sm text-left">
-                                <thead className="text-xs text-slate-500 uppercase bg-slate-50/50">
+                                <thead className="text-[10px] text-slate-500 uppercase tracking-widest bg-slate-50/50 font-black">
                                     <tr>
-                                        <th className="px-6 py-3 font-semibold">Date</th>
-                                        <th className="px-6 py-3 font-semibold">Description</th>
-                                        <th className="px-6 py-3 font-semibold text-right">Amount</th>
-                                        <th className="px-6 py-3 font-semibold text-center">Actions</th>
+                                        <th className="px-6 py-4">Date</th>
+                                        <th className="px-6 py-4">Description</th>
+                                        <th className="px-6 py-4 text-right">Amount</th>
+                                        <th className="px-6 py-4 text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {monthlyExpenses.map((expense) => (
                                         <tr key={expense.id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
+                                            <td className="px-6 py-4 font-bold text-slate-900 whitespace-nowrap">
                                                 {new Date(expense.date).toLocaleDateString('en-GB', {
                                                     day: 'numeric', month: 'short', year: 'numeric'
                                                 })}
                                             </td>
-                                            <td className="px-6 py-4 text-slate-600 max-w-xs truncate" title={expense.description}>
+                                            <td
+                                                className="px-6 py-4 text-slate-600 max-w-xs truncate cursor-pointer hover:whitespace-normal hover:overflow-visible hover:bg-white hover:shadow-lg hover:z-10 relative"
+                                                title={expense.description}
+                                            >
                                                 {expense.description || '-'}
                                             </td>
-                                            <td className="px-6 py-4 text-right font-mono font-medium text-slate-900">
+                                            <td className="px-6 py-4 text-right font-mono font-bold text-slate-900">
                                                 {expense.amount.toLocaleString()}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <button
                                                     onClick={() => handleDeleteExpense(expense.id)}
-                                                    className="text-slate-400 hover:text-rose-500 transition-colors p-1"
+                                                    className="text-slate-400 hover:text-rose-500 transition-colors p-2 rounded-lg hover:bg-rose-50"
                                                     title="Delete"
                                                 >
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -264,65 +277,86 @@ const PersonLedgerPage: React.FC = () => {
                 )}
             </div>
 
-            {/* Add Expense Modal */}
+            {/* Add Expense Modal - Styled like TransactionModal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                            <h2 className="font-bold text-lg text-slate-900">Add Expense</h2>
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
+                        {/* Modal Header */}
+                        <div className="bg-slate-900 px-6 py-5 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-xl font-black text-white tracking-tight">New Entry</h2>
+                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">نیا ریکارڈ</p>
+                            </div>
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="p-1 rounded-full hover:bg-slate-200 transition-colors"
+                                className="p-2 bg-white/10 text-white hover:bg-white/20 rounded-xl transition-colors"
                             >
-                                <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
-                        <form onSubmit={handleAddExpense} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Date</label>
-                                <input
-                                    type="date"
-                                    required
-                                    value={date}
-                                    onChange={(e) => setDate(e.target.value)}
-                                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                                />
+
+                        {/* Modal Body */}
+                        <form onSubmit={handleAddExpense} className="p-6 space-y-5">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                        Date (تاریخ)
+                                    </label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={date}
+                                        onChange={(e) => setDate(e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                        Amount (رقم)
+                                    </label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">PKR</span>
+                                        <input
+                                            type="number"
+                                            required
+                                            value={amount}
+                                            onChange={(e) => setAmount(e.target.value)}
+                                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Description</label>
-                                <input
-                                    type="text"
+                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                    Description (تفصیل)
+                                </label>
+                                <textarea
+                                    rows={3}
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                                    placeholder="e.g. Lunch, Transport"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all resize-none"
+                                    placeholder="Enter details here..."
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Amount</label>
-                                <input
-                                    type="number"
-                                    required
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                                    placeholder="0"
-                                />
-                            </div>
-
-                            <div className="pt-2">
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-70 disabled:active:scale-100"
-                                >
-                                    {isSubmitting ? 'Saving...' : 'Save Expense'}
-                                </button>
-                            </div>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4 rounded-xl shadow-xl shadow-slate-200 active:scale-95 transition-all text-sm uppercase tracking-widest disabled:opacity-70 disabled:active:scale-100 flex items-center justify-center gap-2"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        <span>Saving...</span>
+                                    </>
+                                ) : (
+                                    <span>Save Entry (محفوظ کریں)</span>
+                                )}
+                            </button>
                         </form>
                     </div>
                 </div>
