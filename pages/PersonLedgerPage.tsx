@@ -172,54 +172,95 @@ const PersonLedgerPage: React.FC = () => {
 
             {/* Expenses List */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                     <h3 className="font-bold text-slate-800">Expense History</h3>
+                    <span className="text-xs font-medium text-slate-400 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                        {monthlyExpenses.length} Records
+                    </span>
                 </div>
+
                 {monthlyExpenses.length === 0 ? (
                     <div className="p-8 text-center text-slate-500">
                         No expenses recorded for this month.
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-slate-500 uppercase bg-slate-50/50">
-                                <tr>
-                                    <th className="px-6 py-3 font-semibold">Date</th>
-                                    <th className="px-6 py-3 font-semibold">Description</th>
-                                    <th className="px-6 py-3 font-semibold text-right">Amount</th>
-                                    <th className="px-6 py-3 font-semibold text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {monthlyExpenses.map((expense) => (
-                                    <tr key={expense.id} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
-                                            {new Date(expense.date).toLocaleDateString('en-GB', {
-                                                day: 'numeric', month: 'short', year: 'numeric'
-                                            })}
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-600">
-                                            {expense.description || '-'}
-                                        </td>
-                                        <td className="px-6 py-4 text-right font-mono font-medium text-slate-900">
-                                            {expense.amount.toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <button
-                                                onClick={() => handleDeleteExpense(expense.id)}
-                                                className="text-slate-400 hover:text-rose-500 transition-colors p-1"
-                                                title="Delete"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </td>
+                    <>
+                        {/* Mobile View (Cards) */}
+                        <div className="block md:hidden divide-y divide-slate-100">
+                            {monthlyExpenses.map((expense) => (
+                                <div key={expense.id} className="p-4 hover:bg-slate-50 transition-colors">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-slate-900 text-lg">
+                                                {expense.amount.toLocaleString()}
+                                            </span>
+                                            <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+                                                {new Date(expense.date).toLocaleDateString('en-GB', {
+                                                    weekday: 'short', day: 'numeric', month: 'short'
+                                                })}
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteExpense(expense.id)}
+                                            className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                            title="Delete"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 cursor-pointer active:bg-slate-100">
+                                        <p className="text-sm text-slate-700 leading-relaxed break-words font-medium">
+                                            {expense.description || <span className="text-slate-400 italic">No description</span>}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Desktop View (Table) */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-xs text-slate-500 uppercase bg-slate-50/50">
+                                    <tr>
+                                        <th className="px-6 py-3 font-semibold">Date</th>
+                                        <th className="px-6 py-3 font-semibold">Description</th>
+                                        <th className="px-6 py-3 font-semibold text-right">Amount</th>
+                                        <th className="px-6 py-3 font-semibold text-center">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {monthlyExpenses.map((expense) => (
+                                        <tr key={expense.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
+                                                {new Date(expense.date).toLocaleDateString('en-GB', {
+                                                    day: 'numeric', month: 'short', year: 'numeric'
+                                                })}
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-600 max-w-xs truncate" title={expense.description}>
+                                                {expense.description || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-mono font-medium text-slate-900">
+                                                {expense.amount.toLocaleString()}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <button
+                                                    onClick={() => handleDeleteExpense(expense.id)}
+                                                    className="text-slate-400 hover:text-rose-500 transition-colors p-1"
+                                                    title="Delete"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
             </div>
 
