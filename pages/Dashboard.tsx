@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType, PersonExpense } from '../types';
 import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -46,9 +47,24 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
 
   const profit = stats.totalIncome - stats.totalExpenses;
 
-  const downloadFullMonthlyReport = () => {
+  const downloadFullMonthlyReport = async () => {
     try {
       const doc = new jsPDF();
+
+      // Load font
+      const response = await fetch('/fonts/Amiri-Regular.ttf');
+      if (!response.ok) throw new Error('Failed to load font');
+      const fontBuffer = await response.arrayBuffer();
+      // Convert ArrayBuffer to Base64 string for jsPDF
+      const fontBase64 = btoa(
+        new Uint8Array(fontBuffer)
+          .reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+
+      doc.addFileToVFS('Amiri-Regular.ttf', fontBase64);
+      doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+      doc.setFont('Amiri'); // Set default font
+
       const monthName = new Date(selectedMonth + "-01").toLocaleString('default', { month: 'long', year: 'numeric' });
       const timestamp = new Date().toLocaleString();
 
@@ -99,29 +115,17 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
         doc.text(`* Includes PKR ${stats.personExpenses.toLocaleString()} from Staff Expenses`, 85, 85);
       }
 
-      let y = 110;
       doc.setTextColor(15, 23, 42);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text('Monthly Transaction Details', 20, 100);
 
-      doc.setFillColor(241, 245, 249);
-      doc.rect(20, y - 6, 170, 10, 'F');
-
-      doc.setFontSize(9);
-      doc.setTextColor(71, 85, 105);
-      doc.text('Date', 25, y);
-      doc.text('Type', 45, y);
-      doc.text('Description', 70, y);
-      doc.text('Amount (PKR)', 185, y, { align: 'right' });
-
-      y += 10;
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(30, 41, 59);
-
       // Merge and sort all transactions + person expenses for the report
       const allItems = [
-        ...filteredTransactions.map(t => ({ ...t, displayType: t.type === TransactionType.INCOME ? 'Received' : 'Expense' })),
+        ...filteredTransactions.map(t => ({
+          ...t,
+          displayType: t.type === TransactionType.INCOME ? 'Received' : 'Expense'
+        })),
         ...filteredPersonExpenses.map(e => ({
           id: e.id,
           date: e.date,
@@ -132,42 +136,70 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
         }))
       ].sort((a, b) => a.date.localeCompare(b.date));
 
-      allItems.forEach((t, index) => {
-        if (y > 275) {
-          doc.addPage();
-          y = 30;
-          doc.setFillColor(241, 245, 249);
-          doc.rect(20, y - 6, 170, 10, 'F');
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'bold');
-          doc.text('Date', 25, y);
-          doc.text('Type', 45, y);
-          doc.text('Description', 70, y);
-          doc.text('Amount (PKR)', 185, y, { align: 'right' });
-          doc.setFont('helvetica', 'normal');
-          y += 10;
+      const tableColumn = ["Date", "Type", "Description", "Amount (PKR)"];
+      const tableRows = allItems.map(t => [
+        t.date,
+        t.displayType,
+        t.description,
+        t.amount.toLocaleString()
+      ]);
+
+      (doc as any).autoTable({
+        startY: 110,
+        head: [tableColumn],
+        body: tableRows,
+        styles: {
+          font: 'Amiri', // Use the Urdu font
+          fontStyle: 'normal',
+          fontSize: 10,
+          textColor: [30, 41, 59],
+          valign: 'middle'
+        },
+        headStyles: {
+          fillColor: [241, 245, 249],
+          textColor: [71, 85, 105],
+          fontStyle: 'bold',
+          font: 'helvetica'
+        },
+        columnStyles: {
+          0: { cellWidth: 25 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 'auto' }, // Description gets remaining space
+          3: { cellWidth: 35, halign: 'right' },
+        },
+        alternateRowStyles: {
+          fillColor: [252, 252, 252]
+        },
+        margin: { top: 30, right: 20, left: 20 },
+        didParseCell: (data: any) => {
+          // Color coding for amount column
+          if (data.section === 'body' && data.column.index === 3) {
+            const originalEntry = allItems[data.row.index];
+            const isIncome = originalEntry.type === TransactionType.INCOME;
+            if (isIncome) {
+              data.cell.styles.textColor = [16, 185, 129];
+            } else {
+              data.cell.styles.textColor = [225, 29, 72];
+            }
+          }
         }
-
-        if (index % 2 === 0) {
-          doc.setFillColor(252, 252, 252);
-          doc.rect(20, y - 5, 170, 9, 'F');
-        }
-
-        doc.text(t.date, 25, y);
-        doc.text(t.displayType, 45, y);
-        const desc = t.description.length > 50 ? t.description.substring(0, 47) + '...' : t.description;
-        doc.text(desc, 70, y);
-
-        if (t.type === TransactionType.INCOME) doc.setTextColor(16, 185, 129);
-        else doc.setTextColor(225, 29, 72);
-
-        doc.text(t.amount.toLocaleString(), 185, y, { align: 'right' });
-        doc.setTextColor(30, 41, 59);
-        y += 9;
       });
 
+      // Simple Page Numbering
+      const pageCount = (doc as any).internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+      }
+
       doc.save(`RDF_Monthly_Summary_${selectedMonth}.pdf`);
-    } catch (e) { alert("Error generating PDF"); }
+    } catch (e) {
+      console.error(e);
+      alert("Error generating PDF");
+    }
   };
 
   return (
