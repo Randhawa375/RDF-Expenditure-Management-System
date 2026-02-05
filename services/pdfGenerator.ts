@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import amiriFontUrl from '../src/assets/fonts/Amiri-Regular.ttf';
 
 export class PdfGenerator {
     /**
@@ -10,7 +11,8 @@ export class PdfGenerator {
 
         try {
             // Load the Urdu font
-            const response = await fetch('/fonts/Amiri-Regular.ttf');
+            // Use the imported URL which Vite will resolve correctly in both dev and build
+            const response = await fetch(amiriFontUrl);
             if (!response.ok) throw new Error('Failed to load font');
 
             const fontBuffer = await response.arrayBuffer();
@@ -30,7 +32,8 @@ export class PdfGenerator {
 
         } catch (error) {
             console.error("Error loading font:", error);
-            // Fallback or alert could happen here, but we return the doc anyway
+            // CRITICAL: Re-throw to prevent using a PDF without the correct font (which leads to Mojibake)
+            throw error;
         }
 
         return doc;
