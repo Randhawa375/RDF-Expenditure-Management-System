@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Transaction, TransactionType } from '../types';
 import { jsPDF } from 'jspdf';
+import { PdfGenerator } from '../services/pdfGenerator';
 import 'jspdf-autotable';
 
 interface ReportsProps {
@@ -28,39 +29,14 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
 
   const generatePDF = async () => {
     try {
-      const doc = new jsPDF();
-      const timestamp = new Date().toLocaleString();
+      const doc = await PdfGenerator.initPDF();
 
-      // Load font
-      const response = await fetch('/fonts/Amiri-Regular.ttf');
-      if (!response.ok) throw new Error('Failed to load font');
-      const fontBuffer = await response.arrayBuffer();
-      // Convert ArrayBuffer to Base64 string for jsPDF
-      const fontBase64 = btoa(
-        new Uint8Array(fontBuffer)
-          .reduce((data, byte) => data + String.fromCharCode(byte), '')
+      PdfGenerator.addHeader(
+        doc,
+        'MONTHLY FINANCIAL STATEMENT',
+        '',
+        `STATEMENT PERIOD: ${monthYear.toUpperCase()}`
       );
-
-      doc.addFileToVFS('Amiri-Regular.ttf', fontBase64);
-      doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
-      doc.setFont('Amiri'); // Set default font
-
-      // Top Premium Branding
-      doc.setFillColor(15, 23, 42);
-      doc.rect(0, 0, 210, 45, 'F');
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.setFont('helvetica', 'bold'); // Keep title in English font
-      doc.text('RDF EXPENDITURE', 20, 25);
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text('MONTHLY FINANCIAL STATEMENT', 20, 33);
-
-      doc.setFontSize(9);
-      doc.text(`STATEMENT PERIOD: ${monthYear.toUpperCase()}`, 190, 25, { align: 'right' });
-      doc.text(`GENERATED: ${timestamp}`, 190, 31, { align: 'right' });
 
       // Financial Summary Dashboard
       doc.setDrawColor(226, 232, 240);
@@ -107,13 +83,14 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
           fontStyle: 'normal',
           fontSize: 10,
           textColor: [30, 41, 59],
-          valign: 'middle'
+          valign: 'middle',
+          overflow: 'linebreak'
         },
         headStyles: {
           fillColor: [241, 245, 249],
           textColor: [71, 85, 105],
           fontStyle: 'bold',
-          font: 'helvetica' // Keep header in English if preferred, or 'Amiri'
+          font: 'helvetica'
         },
         columnStyles: {
           0: { cellWidth: 30 },
@@ -138,15 +115,7 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
         }
       });
 
-      // Simple Page Numbering
-      const pageCount = (doc as any).internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(148, 163, 184);
-        doc.text(`Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
-      }
+      PdfGenerator.addFooter(doc);
 
       doc.save(`RDF_Financial_Statement_${selectedMonth}.pdf`);
     } catch (error) {

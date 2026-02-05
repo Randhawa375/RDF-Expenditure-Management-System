@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType } from '../types';
 import { jsPDF } from 'jspdf';
+import { PdfGenerator } from '../services/pdfGenerator';
 
 interface DailyLedgerPageProps {
   type: TransactionType;
@@ -36,31 +37,22 @@ const DailyLedgerPage: React.FC<DailyLedgerPageProps> = ({ type, transactions, o
   const accentText = isExpense ? 'text-rose-600' : 'text-emerald-600';
   const accentBg = isExpense ? 'bg-rose-500' : 'bg-emerald-500';
 
-  const downloadDailyReport = () => {
+  const downloadDailyReport = async () => {
     try {
-      const doc = new jsPDF();
+      const doc = await PdfGenerator.initPDF();
       const category = isExpense ? 'EXPENSE' : 'PAYMENT RECEIVED';
-      const timestamp = new Date().toLocaleString();
 
-      // Top Branding Banner
-      doc.setFillColor(isExpense ? 225 : 16, isExpense ? 29 : 185, isExpense ? 72 : 129);
-      doc.rect(0, 0, 210, 45, 'F');
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.setFont('helvetica', 'bold');
-      doc.text('RDF EXPENDITURE', 20, 25);
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`DAILY ${category} REPORT`, 20, 33);
-      doc.text(`DATE: ${displayDate.toUpperCase()}`, 190, 25, { align: 'right' });
-      doc.setFontSize(8);
-      doc.text(`Generated: ${timestamp}`, 190, 31, { align: 'right' });
+      PdfGenerator.addHeader(
+        doc,
+        `DAILY ${category} REPORT`,
+        '', // Subtitle could go here if needed
+        `DATE: ${displayDate.toUpperCase()}`,
+        isExpense
+      );
 
       // Daily Total Box
       doc.setFillColor(248, 250, 252);
-      doc.setDrawColor(226, 232, 240);
+      doc.setDrawColor(isExpense ? 225 : 16, isExpense ? 29 : 185, isExpense ? 72 : 129); // Border color matches theme
       doc.roundedRect(20, 55, 170, 25, 2, 2, 'FD');
 
       doc.setTextColor(100, 116, 139);
@@ -85,7 +77,9 @@ const DailyLedgerPage: React.FC<DailyLedgerPageProps> = ({ type, transactions, o
       doc.text('AMOUNT (PKR)', 185, y, { align: 'right' });
 
       y += 10;
-      doc.setFont('helvetica', 'normal');
+      // Switch to Urdu font for lists
+      doc.setFont('Amiri');
+      doc.setFontSize(10);
       doc.setTextColor(30, 41, 59);
 
       dayItems.forEach((t, index) => {
@@ -96,16 +90,24 @@ const DailyLedgerPage: React.FC<DailyLedgerPageProps> = ({ type, transactions, o
           doc.rect(20, y - 5, 170, 9, 'F');
         }
 
+        // SR# (Helvetica for numbers looks usually fine, but Amiri handles digits too)
         doc.text((index + 1).toString(), 25, y);
+
         const desc = t.description.length > 75 ? t.description.substring(0, 72) + '...' : t.description;
-        doc.text(desc, 45, y);
+        doc.text(desc, 45, y); // Main Urdu content support
+
         doc.text(t.amount.toLocaleString(), 185, y, { align: 'right' });
 
         y += 9;
       });
 
+      PdfGenerator.addFooter(doc);
+
       doc.save(`RDF_Daily_${isExpense ? 'Expense' : 'Received'}_${date}.pdf`);
-    } catch (e) { alert("Error generating PDF"); }
+    } catch (e) {
+      console.error(e);
+      alert("Error generating PDF");
+    }
   };
 
   return (

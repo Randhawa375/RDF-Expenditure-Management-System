@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType, PersonExpense } from '../types';
 import { jsPDF } from 'jspdf';
+import { PdfGenerator } from '../services/pdfGenerator';
 import 'jspdf-autotable';
 
 interface DashboardProps {
@@ -49,41 +50,17 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
 
   const downloadFullMonthlyReport = async () => {
     try {
-      const doc = new jsPDF();
+      const doc = await PdfGenerator.initPDF();
+      const monthName = new Date(selectedMonth + "-01").toLocaleString('default', { month: 'long', year: 'numeric' });
 
-      // Load font
-      const response = await fetch('/fonts/Amiri-Regular.ttf');
-      if (!response.ok) throw new Error('Failed to load font');
-      const fontBuffer = await response.arrayBuffer();
-      // Convert ArrayBuffer to Base64 string for jsPDF
-      const fontBase64 = btoa(
-        new Uint8Array(fontBuffer)
-          .reduce((data, byte) => data + String.fromCharCode(byte), '')
+      PdfGenerator.addHeader(
+        doc,
+        'RDF EXPENDITURE', // Title 
+        'MANAGEMENT SYSTEM', // Subtitle
+        `PERIOD: ${monthName.toUpperCase()}`
       );
 
-      doc.addFileToVFS('Amiri-Regular.ttf', fontBase64);
-      doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
-      doc.setFont('Amiri'); // Set default font
-
-      const monthName = new Date(selectedMonth + "-01").toLocaleString('default', { month: 'long', year: 'numeric' });
-      const timestamp = new Date().toLocaleString();
-
-      doc.setFillColor(15, 23, 42);
-      doc.rect(0, 0, 210, 45, 'F');
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.setFont('helvetica', 'bold');
-      doc.text('RDF EXPENDITURE', 20, 25);
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text('MANAGEMENT SYSTEM', 20, 32);
-
-      doc.setFontSize(9);
-      doc.text(`Period: ${monthName.toUpperCase()}`, 190, 25, { align: 'right' });
-      doc.text(`Generated: ${timestamp}`, 190, 31, { align: 'right' });
-
+      // Financial Summary Dashboard
       doc.setDrawColor(226, 232, 240);
       doc.setFillColor(248, 250, 252);
       doc.roundedRect(20, 55, 170, 35, 3, 3, 'FD');
@@ -185,15 +162,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
         }
       });
 
-      // Simple Page Numbering
-      const pageCount = (doc as any).internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(148, 163, 184);
-        doc.text(`Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
-      }
+      PdfGenerator.addFooter(doc);
 
       doc.save(`RDF_Monthly_Summary_${selectedMonth}.pdf`);
     } catch (e) {

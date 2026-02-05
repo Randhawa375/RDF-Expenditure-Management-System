@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType } from '../types';
 import { jsPDF } from 'jspdf';
+import { PdfGenerator } from '../services/pdfGenerator';
 
 interface TransactionsPageProps {
   type: TransactionType;
@@ -62,28 +63,18 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
   const isExpense = type === TransactionType.EXPENSE;
   const monthName = new Date(selectedMonth + "-01").toLocaleString('default', { month: 'long', year: 'numeric' });
 
-  const downloadReport = () => {
+  const downloadReport = async () => {
     try {
-      const doc = new jsPDF();
+      const doc = await PdfGenerator.initPDF();
       const title = isExpense ? 'EXPENSE RECORDS' : 'PAYMENT RECEIVED RECORDS';
-      const timestamp = new Date().toLocaleString();
 
-      // Header Section
-      doc.setFillColor(isExpense ? 225 : 16, isExpense ? 29 : 185, isExpense ? 72 : 129);
-      doc.rect(0, 0, 210, 45, 'F');
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.setFont('helvetica', 'bold');
-      doc.text('RDF EXPENDITURE', 20, 25);
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(title, 20, 33);
-
-      doc.setFontSize(9);
-      doc.text(`Period: ${monthName.toUpperCase()}`, 190, 25, { align: 'right' });
-      // doc.text(`Generated: ${timestamp}`, 190, 31, { align: 'right' });
+      PdfGenerator.addHeader(
+        doc,
+        'RDF EXPENDITURE',
+        title,
+        `PERIOD: ${monthName.toUpperCase()}`,
+        isExpense
+      );
 
       // Total Summary Banner
       doc.setFillColor(248, 250, 252);
@@ -112,7 +103,9 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
       doc.text('AMOUNT (PKR)', 185, y, { align: 'right' });
 
       y += 10;
-      doc.setFont('helvetica', 'normal');
+      // Switch to Urdu font for content
+      doc.setFont('Amiri');
+      doc.setFontSize(10);
       doc.setTextColor(30, 41, 59);
 
       // Data Rows - Sorted Ascending
@@ -129,7 +122,10 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
           doc.text('DATE', 25, y);
           doc.text('DESCRIPTION / DETAILS', 60, y);
           doc.text('AMOUNT (PKR)', 185, y, { align: 'right' });
-          doc.setFont('helvetica', 'normal');
+          // Switch back to Amri
+          doc.setFont('Amiri');
+          doc.setFont('normal');
+          doc.setTextColor(30, 41, 59);
           y += 10;
         }
 
@@ -140,14 +136,19 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
 
         doc.text(t.date, 25, y);
         const desc = t.description.length > 60 ? t.description.substring(0, 57) + '...' : t.description;
-        doc.text(desc, 60, y);
+        doc.text(desc, 60, y); // Urdu supported
         doc.text(t.amount.toLocaleString(), 185, y, { align: 'right' });
 
         y += 9;
       });
 
+      PdfGenerator.addFooter(doc);
+
       doc.save(`RDF_${isExpense ? 'Expenses' : 'Income'}_Report_${selectedMonth}.pdf`);
-    } catch (e) { alert("Error generating PDF"); }
+    } catch (e) {
+      console.error(e);
+      alert("Error generating PDF");
+    }
   };
 
   return (

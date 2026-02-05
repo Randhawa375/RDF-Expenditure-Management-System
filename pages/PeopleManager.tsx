@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { db } from '../services/db';
 import { Person, PersonExpense } from '../types';
 import { jsPDF } from 'jspdf';
+import { PdfGenerator } from '../services/pdfGenerator';
 
 const PeopleManager: React.FC = () => {
     const [persons, setPersons] = useState<Person[]>([]);
@@ -43,46 +44,58 @@ const PeopleManager: React.FC = () => {
             .reduce((sum, e) => sum + e.amount, 0);
     }, [allExpenses, currentMonth]);
 
-    const downloadReport = () => {
-        const doc = new jsPDF();
-        const timestamp = new Date().toLocaleString();
+    const downloadReport = async () => {
+        try {
+            const doc = await PdfGenerator.initPDF();
 
-        doc.setFontSize(20);
-        doc.text('Staff / Persons Report', 14, 22);
+            PdfGenerator.addHeader(
+                doc,
+                'STAFF / PERSONS REPORT',
+                '',
+                `GENERATED: ${new Date().toLocaleDateString()}`
+            );
 
-        doc.setFontSize(10);
-        doc.text(`Generated: ${timestamp}`, 14, 30);
-        doc.text(`Current Month Total Expenses: PKR ${monthlyTotal.toLocaleString()}`, 14, 36);
+            doc.setFontSize(10);
+            doc.text(`Current Month Total Expenses: PKR ${monthlyTotal.toLocaleString()}`, 14, 36);
 
-        let y = 50;
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Staff List', 14, 45);
+            let y = 50;
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Staff List', 14, 45);
 
-        doc.setFontSize(10);
-        doc.setFillColor(240, 240, 240);
-        doc.rect(14, y - 6, 180, 8, 'F');
-        doc.text('Name', 16, y);
-        doc.text('Salary Limit', 80, y);
-        doc.text('Prev Balance', 120, y);
-        doc.text('Total Expense (This Month)', 160, y, { align: 'right' });
+            doc.setFontSize(10);
+            doc.setFillColor(240, 240, 240);
+            doc.rect(14, y - 6, 180, 8, 'F');
+            doc.text('Name', 16, y);
+            doc.text('Salary Limit', 80, y);
+            doc.text('Prev Balance', 120, y);
+            doc.text('Total Expense (This Month)', 160, y, { align: 'right' });
 
-        y += 10;
-        doc.setFont('helvetica', 'normal');
+            y += 10;
+            // Switch to Urdu font for names potentially containing Urdu
+            doc.setFont('Amiri');
+            doc.setFont('normal');
+            doc.setTextColor(30, 41, 59);
 
-        persons.forEach((p, i) => {
-            const personExpenses = allExpenses
-                .filter(e => e.person_id === p.id && e.date.startsWith(currentMonth))
-                .reduce((sum, e) => sum + e.amount, 0);
+            persons.forEach((p, i) => {
+                const personExpenses = allExpenses
+                    .filter(e => e.person_id === p.id && e.date.startsWith(currentMonth))
+                    .reduce((sum, e) => sum + e.amount, 0);
 
-            doc.text(p.name, 16, y);
-            doc.text(p.salary_limit.toLocaleString(), 80, y);
-            doc.text(p.previous_balance.toLocaleString(), 120, y);
-            doc.text(personExpenses.toLocaleString(), 190, y, { align: 'right' }); // Adjusted align to right
-            y += 8;
-        });
+                doc.text(p.name, 16, y); // Name might be Urdu
+                doc.text(p.salary_limit.toLocaleString(), 80, y);
+                doc.text(p.previous_balance.toLocaleString(), 120, y);
+                doc.text(personExpenses.toLocaleString(), 190, y, { align: 'right' });
+                y += 8;
+            });
 
-        doc.save('Staff_Report.pdf');
+            PdfGenerator.addFooter(doc);
+
+            doc.save('Staff_Report.pdf');
+        } catch (error) {
+            console.error("Error generating PDF:", error);
+            alert("Error generating PDF");
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

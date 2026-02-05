@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { db } from '../services/db';
 import { Person, PersonExpense } from '../types';
 import { jsPDF } from 'jspdf';
+import { PdfGenerator } from '../services/pdfGenerator';
 
 const PersonLedgerPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -56,47 +57,63 @@ const PersonLedgerPage: React.FC = () => {
         return person.salary_limit - totalMonthlyExpense;
     }, [person, totalMonthlyExpense]);
 
-    const downloadReport = () => {
-        const doc = new jsPDF();
-        const timestamp = new Date().toLocaleString();
+    const downloadReport = async () => {
+        try {
+            const doc = await PdfGenerator.initPDF();
 
-        doc.setFontSize(20);
-        doc.text(`Ledger: ${person.name} `, 14, 22);
+            PdfGenerator.addHeader(
+                doc,
+                `LEDGER: ${person.name}`,
+                '',
+                `SALARY LIMIT: ${person.salary_limit.toLocaleString()}`
+            );
 
-        doc.setFontSize(10);
-        doc.text(`Generated: ${timestamp} `, 14, 30);
-        doc.text(`Salary Limit: ${person.salary_limit.toLocaleString()} `, 14, 36);
-        doc.text(`Previous Balance: ${person.previous_balance.toLocaleString()} `, 14, 42);
-        doc.text(`Current Month Total: ${totalMonthlyExpense.toLocaleString()} `, 14, 48);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Previous Balance: ${person.previous_balance.toLocaleString()}`, 14, 42); // Adjust Y if needed based on header
+            doc.text(`Current Month Total: ${totalMonthlyExpense.toLocaleString()}`, 14, 48);
 
-        let y = 60;
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Transaction History', 14, 55);
+            let y = 60;
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Transaction History', 14, 55);
 
-        doc.setFontSize(10);
-        doc.setFillColor(240, 240, 240);
-        doc.rect(14, y - 6, 180, 8, 'F');
-        doc.text('Date', 16, y);
-        doc.text('Description', 50, y);
-        doc.text('Amount', 170, y, { align: 'right' });
+            doc.setFontSize(10);
+            doc.setFillColor(240, 240, 240);
+            doc.rect(14, y - 6, 180, 8, 'F');
+            doc.text('Date', 16, y);
+            doc.text('Description', 50, y);
+            doc.text('Amount', 170, y, { align: 'right' });
 
-        y += 10;
-        doc.setFont('helvetica', 'normal');
+            y += 10;
+            // Switch to Urdu font for body content (descriptions)
+            doc.setFont('Amiri');
+            doc.setFontSize(10);
+            doc.setTextColor(30, 41, 59);
 
-        expenses.forEach((e, i) => {
-            if (y > 280) {
-                doc.addPage();
-                y = 20;
-            }
-            doc.text(e.date, 16, y);
-            const desc = e.description.length > 50 ? e.description.substring(0, 47) + '...' : e.description;
-            doc.text(desc, 50, y);
-            doc.text(e.amount.toLocaleString(), 170, y, { align: 'right' });
-            y += 8;
-        });
+            expenses.forEach((e, i) => {
+                if (y > 280) {
+                    doc.addPage();
+                    y = 20;
+                }
 
-        doc.save(`${person.name} _Ledger.pdf`);
+                // Helper to draw text with possible Urdu
+                doc.text(e.date, 16, y);
+
+                const desc = e.description.length > 50 ? e.description.substring(0, 47) + '...' : e.description;
+                doc.text(desc, 50, y); // This will now support Urdu because font is Amiri
+
+                doc.text(e.amount.toLocaleString(), 170, y, { align: 'right' });
+                y += 8;
+            });
+
+            PdfGenerator.addFooter(doc);
+
+            doc.save(`${person.name}_Ledger.pdf`);
+        } catch (error) {
+            console.error("Error generating PDF:", error);
+            alert("Error generating PDF");
+        }
     };
 
     const handleAddExpense = async (e: React.FormEvent) => {
