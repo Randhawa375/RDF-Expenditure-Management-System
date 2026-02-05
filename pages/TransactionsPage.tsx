@@ -104,7 +104,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
 
       y += 10;
       // Switch to Urdu font for content
-      doc.setFont('Amiri');
+      doc.setFont('Amiri', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(30, 41, 59);
 
@@ -123,7 +123,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
           doc.text('DESCRIPTION / DETAILS', 60, y);
           doc.text('AMOUNT (PKR)', 185, y, { align: 'right' });
           // Switch back to Amri
-          doc.setFont('Amiri');
+          doc.setFont('Amiri', 'normal');
           doc.setFont('normal');
           doc.setTextColor(30, 41, 59);
           y += 10;

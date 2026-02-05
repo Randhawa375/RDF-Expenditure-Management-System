@@ -73,7 +73,7 @@ const PeopleManager: React.FC = () => {
 
             y += 10;
             // Switch to Urdu font for names potentially containing Urdu
-            doc.setFont('Amiri');
+            doc.setFont('Amiri', 'normal');
             doc.setFont('normal');
             doc.setTextColor(30, 41, 59);
 

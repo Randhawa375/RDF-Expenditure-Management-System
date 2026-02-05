@@ -87,7 +87,7 @@ const PersonLedgerPage: React.FC = () => {
 
             y += 10;
             // Switch to Urdu font for body content (descriptions)
-            doc.setFont('Amiri');
+            doc.setFont('Amiri', 'normal');
             doc.setFontSize(10);
             doc.setTextColor(30, 41, 59);
 

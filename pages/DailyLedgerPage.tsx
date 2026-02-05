@@ -78,7 +78,7 @@ const DailyLedgerPage: React.FC<DailyLedgerPageProps> = ({ type, transactions, o
 
       y += 10;
       // Switch to Urdu font for lists
-      doc.setFont('Amiri');
+      doc.setFont('Amiri', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(30, 41, 59);
 

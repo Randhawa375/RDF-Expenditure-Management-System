@@ -42,8 +42,11 @@ export class PdfGenerator {
             // Register with Identity-H to support UTF-8/Urdu glyphs correctly
             // Args: fileName, fontName, fontStyle, fontWeight, encoding
             doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal', 400, 'Identity-H');
+            // Also register as 'bold' (pointing to same file) to prevent fallback to Helvetica 
+            // if style is left as 'bold' from headers.
+            doc.addFont('Amiri-Regular.ttf', 'Amiri', 'bold', 700, 'Identity-H');
 
-            doc.setFont('Amiri'); // Set as default at document level
+            doc.setFont('Amiri', 'normal'); // Set as default at document level
 
             // Verify font is added
             if (!doc.getFontList()['Amiri']) {
