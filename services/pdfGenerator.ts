@@ -10,23 +10,25 @@ export class PdfGenerator {
         const doc = new jsPDF();
 
         try {
+            console.log("Initializing PDF with font URL:", amiriFontUrl);
+
             // Load the Urdu font
             const response = await fetch(amiriFontUrl);
-            if (!response.ok) throw new Error(`Failed to load font from ${amiriFontUrl}`);
+            if (!response.ok) throw new Error(`Failed to load font from ${amiriFontUrl}: ${response.statusText}`);
 
             const fontBlob = await response.blob();
+            console.log("Font blob loaded, size:", fontBlob.size);
 
             // Validation: Ensure the downloaded file is actually a font (approx > 10KB)
             if (fontBlob.size < 10000) {
                 throw new Error(`Downloaded font file is too small (${fontBlob.size} bytes). Likely a 404 or corrupted file.`);
             }
 
-            // Convert Blob to Base64 string using FileReader (more robust than reduce)
+            // Convert Blob to Base64 string using FileReader
             const fontBase64 = await new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     const result = reader.result as string;
-                    // Remove the data URL prefix (e.g., "data:font/ttf;base64,")
                     const base64 = result.split(',')[1];
                     resolve(base64);
                 };
@@ -36,16 +38,23 @@ export class PdfGenerator {
 
             // Add font to VFS and register it
             doc.addFileToVFS('Amiri-Regular.ttf', fontBase64);
-            // Correct argument order: fontName, id, fontStyle, fontWeight, encoding
-            doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal', 400, 'Identity-H'); // Identity-H is CRITICAL for Urdu/Arabic
-            doc.setFont('Amiri'); // Set as default
 
-            // Enable RTL support if needed by specific text calls, but usually just the font is enough for characters
-            // (doc as any).setR2L(true); // Uncomment if strict RTL direction is needed globally
+            // Register with Identity-H to support UTF-8/Urdu glyphs correctly
+            // Args: fileName, fontName, fontStyle, fontWeight, encoding
+            doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal', 400, 'Identity-H');
+
+            doc.setFont('Amiri'); // Set as default at document level
+
+            // Verify font is added
+            if (!doc.getFontList()['Amiri']) {
+                console.warn("Font Amiri not found in font list after addition!");
+            }
+
+            console.log("Font 'Amiri' registered with Identity-H.");
 
         } catch (error) {
             console.error("Error loading font:", error);
-            // CRITICAL: Re-throw to prevent using a PDF without the correct font (which leads to Mojibake)
+            // Re-throw so consumers know initialization failed
             throw error;
         }
 

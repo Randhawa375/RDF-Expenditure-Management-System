@@ -167,7 +167,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
       doc.save(`RDF_Monthly_Summary_${selectedMonth}.pdf`);
     } catch (e) {
       console.error(e);
-      alert("Error generating PDF");
+      alert(`Error generating PDF: ${(e as Error).message}`);
     }
   };
 
