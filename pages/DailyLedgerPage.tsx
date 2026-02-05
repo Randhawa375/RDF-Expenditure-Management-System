@@ -187,10 +187,10 @@ const DailyLedgerPage: React.FC<DailyLedgerPageProps> = ({ type, transactions, o
                   className="overflow-hidden cursor-pointer"
                   onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
                 >
-                  <div className={`font-black text-slate-900 text-base tracking-tight leading-tight ${expandedId === t.id ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
+                  <div className={`font-black text-slate-900 text-base tracking-tight leading-relaxed ${expandedId === t.id ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
                     {t.description}
                   </div>
-                  <div className="text-[8px] text-slate-300 uppercase tracking-widest font-black mt-0.5 leading-none">
+                  <div className="text-[8px] text-slate-300 uppercase tracking-widest font-black mt-1.5 leading-none">
                     {expandedId === t.id ? 'Click to collapse' : 'Click to expand'}
                   </div>
                 </div>

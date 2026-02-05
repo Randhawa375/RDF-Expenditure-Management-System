@@ -121,7 +121,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
         t.amount.toLocaleString()
       ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: 100,
         head: [tableColumn],
         body: tableRows,
