@@ -55,47 +55,47 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
 
       PdfGenerator.addHeader(
         doc,
-        'RDF EXPENDITURE', // Title 
-        'MANAGEMENT SYSTEM', // Subtitle
+        'MONTHLY STATEMENT',
+        'RDF EMS',
         `PERIOD: ${monthName.toUpperCase()}`
       );
 
       // Financial Summary Dashboard
       doc.setDrawColor(226, 232, 240);
       doc.setFillColor(248, 250, 252);
-      doc.roundedRect(20, 55, 170, 35, 3, 3, 'FD');
+      doc.roundedRect(20, 50, 170, 35, 3, 3, 'FD');
 
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setTextColor(100, 116, 139);
       doc.setFont('helvetica', 'bold');
-      doc.text('TOTAL RECEIVED', 30, 65);
-      doc.text('TOTAL EXPENSES', 85, 65);
-      doc.text('NET BALANCE', 140, 65);
+      doc.text('TOTAL RECEIVED', 30, 60);
+      doc.text('TOTAL EXPENSES', 85, 60);
+      doc.text('NET BALANCE', 140, 60);
 
       doc.setFontSize(14);
       doc.setTextColor(16, 185, 129);
-      doc.text(`PKR ${stats.totalIncome.toLocaleString()}`, 30, 78);
+      doc.text(`PKR ${stats.totalIncome.toLocaleString()}`, 30, 73);
 
       doc.setTextColor(225, 29, 72);
-      doc.text(`PKR ${stats.totalExpenses.toLocaleString()}`, 85, 78);
+      doc.text(`PKR ${stats.totalExpenses.toLocaleString()}`, 85, 73);
 
       if (profit >= 0) doc.setTextColor(79, 70, 229);
       else doc.setTextColor(225, 29, 72);
-      doc.text(`PKR ${profit.toLocaleString()}`, 140, 78);
+      doc.text(`PKR ${profit.toLocaleString()}`, 140, 73);
 
       // Note about person expenses inclusion
       doc.setTextColor(100, 116, 139);
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setFont('helvetica', 'italic');
 
       if (stats.personExpenses > 0) {
-        doc.text(`* Includes PKR ${stats.personExpenses.toLocaleString()} from Staff Expenses`, 85, 85);
+        doc.text(`* Includes PKR ${stats.personExpenses.toLocaleString()} from Staff Expenses`, 85, 80);
       }
 
-      doc.setTextColor(15, 23, 42);
+      doc.setTextColor(30, 41, 59);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Monthly Transaction Details', 20, 100);
+      doc.text('Transaction Details', 20, 95);
 
       // Merge and sort all transactions + person expenses for the report
       const allItems = [
@@ -121,42 +121,45 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
         t.amount.toLocaleString()
       ]);
 
-      autoTable(doc, {
-        startY: 110,
+      (doc as any).autoTable({
+        startY: 100,
         head: [tableColumn],
         body: tableRows,
+        theme: 'grid',
         styles: {
-          font: 'Amiri', // Use the Urdu font
+          font: 'Amiri',
           fontStyle: 'normal',
-          fontSize: 10,
+          fontSize: 9,
           textColor: [30, 41, 59],
-          valign: 'middle'
+          valign: 'middle',
+          lineColor: [226, 232, 240],
+          lineWidth: 0.1,
+          cellPadding: 4
         },
         headStyles: {
-          fillColor: [241, 245, 249],
-          textColor: [71, 85, 105],
+          fillColor: [15, 23, 42], // Slate 900
+          textColor: [255, 255, 255],
           fontStyle: 'bold',
-          font: 'helvetica'
+          font: 'helvetica',
+          halign: 'left'
         },
         columnStyles: {
           0: { cellWidth: 25 },
           1: { cellWidth: 25 },
-          2: { cellWidth: 'auto' }, // Description gets remaining space
-          3: { cellWidth: 35, halign: 'right' },
+          2: { cellWidth: 'auto' },
+          3: { cellWidth: 35, halign: 'right', fontStyle: 'bold' },
         },
         alternateRowStyles: {
-          fillColor: [252, 252, 252]
+          fillColor: [248, 250, 252] // Slate 50
         },
         margin: { top: 30, right: 20, left: 20 },
         didParseCell: (data: any) => {
           // Color coding for amount column
           if (data.section === 'body' && data.column.index === 3) {
             const originalEntry = allItems[data.row.index];
-            const isIncome = originalEntry.type === TransactionType.INCOME;
-            if (isIncome) {
-              data.cell.styles.textColor = [16, 185, 129];
-            } else {
-              data.cell.styles.textColor = [225, 29, 72];
+            if (originalEntry) {
+              const isIncome = originalEntry.type === TransactionType.INCOME;
+              data.cell.styles.textColor = isIncome ? [16, 185, 129] : [225, 29, 72];
             }
           }
         }

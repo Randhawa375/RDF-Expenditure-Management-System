@@ -70,39 +70,40 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
 
       PdfGenerator.addHeader(
         doc,
-        'RDF EXPENDITURE',
         title,
+        'RDF EMS',
         `PERIOD: ${monthName.toUpperCase()}`,
         isExpense
       );
 
       // Total Summary Banner
+      const accentColor = isExpense ? [225, 29, 72] : [16, 185, 129];
       doc.setFillColor(248, 250, 252);
       doc.setDrawColor(226, 232, 240);
-      doc.roundedRect(20, 55, 170, 25, 2, 2, 'FD');
+      doc.roundedRect(20, 50, 170, 25, 2, 2, 'FD');
 
       doc.setTextColor(100, 116, 139);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text(`MONTHLY TOTAL ${isExpense ? 'EXPENSES' : 'RECEIVED'}:`, 30, 71);
+      doc.text(`MONTHLY TOTAL ${isExpense ? 'EXPENSES' : 'RECEIVED'}:`, 30, 66);
 
-      doc.setTextColor(isExpense ? 225 : 16, isExpense ? 29 : 185, isExpense ? 72 : 129);
-      doc.setFontSize(18);
-      doc.text(`PKR ${stats.total.toLocaleString()}`, 190, 71, { align: 'right' });
+      doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+      doc.setFontSize(16);
+      doc.text(`PKR ${stats.total.toLocaleString()}`, 190, 66, { align: 'right' });
 
-      // Table Header
-      let y = 100;
-      doc.setFillColor(241, 245, 249);
-      doc.rect(20, y - 6, 170, 10, 'F');
+      // Table Header using Dark Theme
+      let y = 90;
+      doc.setFillColor(15, 23, 42); // Slate 900
+      doc.rect(20, y - 7, 170, 10, 'F');
 
       doc.setFontSize(9);
-      doc.setTextColor(71, 85, 105);
+      doc.setTextColor(255, 255, 255); // White text
       doc.setFont('helvetica', 'bold');
       doc.text('DATE', 25, y);
       doc.text('DESCRIPTION / DETAILS', 60, y);
       doc.text('AMOUNT (PKR)', 185, y, { align: 'right' });
 
-      y += 10;
+      y += 8;
       // Switch to Urdu font for content
       doc.setFont('Amiri', 'normal');
       doc.setFontSize(10);
@@ -112,34 +113,37 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
       const sorted = [...filteredTransactions].sort((a, b) => a.date.localeCompare(b.date));
 
       sorted.forEach((t, index) => {
-        if (y > 275) {
+        if (y > 270) {
           doc.addPage();
-          y = 25;
+          y = 30;
           // Re-add table header on new page
-          doc.setFillColor(241, 245, 249);
-          doc.rect(20, y - 6, 170, 10, 'F');
+          doc.setFillColor(15, 23, 42);
+          doc.rect(20, y - 7, 170, 10, 'F');
           doc.setFont('helvetica', 'bold');
+          doc.setTextColor(255, 255, 255);
           doc.text('DATE', 25, y);
           doc.text('DESCRIPTION / DETAILS', 60, y);
           doc.text('AMOUNT (PKR)', 185, y, { align: 'right' });
-          // Switch back to Amri
+
           doc.setFont('Amiri', 'normal');
-          doc.setFont('normal');
           doc.setTextColor(30, 41, 59);
           y += 10;
         }
 
         if (index % 2 === 0) {
-          doc.setFillColor(252, 252, 252);
-          doc.rect(20, y - 5, 170, 9, 'F');
+          doc.setFillColor(248, 250, 252);
+          doc.rect(20, y - 6, 170, 10, 'F');
         }
 
+        doc.setFontSize(9);
         doc.text(t.date, 25, y);
         const desc = t.description.length > 60 ? t.description.substring(0, 57) + '...' : t.description;
         doc.text(desc, 60, y); // Urdu supported
+
+        doc.setFontSize(10);
         doc.text(t.amount.toLocaleString(), 185, y, { align: 'right' });
 
-        y += 9;
+        y += 10;
       });
 
       PdfGenerator.addFooter(doc);

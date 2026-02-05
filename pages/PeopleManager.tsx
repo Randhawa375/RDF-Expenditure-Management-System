@@ -50,26 +50,31 @@ const PeopleManager: React.FC = () => {
 
             PdfGenerator.addHeader(
                 doc,
-                'STAFF / PERSONS REPORT',
-                '',
+                'STAFF REPORT',
+                'RDF EMS',
                 `GENERATED: ${new Date().toLocaleDateString()}`
             );
 
             doc.setFontSize(10);
-            doc.text(`Current Month Total Expenses: PKR ${monthlyTotal.toLocaleString()}`, 14, 36);
-
-            let y = 50;
-            doc.setFontSize(12);
+            doc.setTextColor(100, 116, 139);
+            doc.text(`Current Month Total Expenses:`, 14, 48);
             doc.setFont('helvetica', 'bold');
-            doc.text('Staff List', 14, 45);
+            doc.setTextColor(225, 29, 72);
+            doc.text(`PKR ${monthlyTotal.toLocaleString()}`, 70, 48);
+
+            let y = 65;
+            doc.setFontSize(12);
+            doc.setTextColor(30, 41, 59);
+            doc.text('Staff List', 14, 58);
 
             doc.setFontSize(10);
-            doc.setFillColor(240, 240, 240);
-            doc.rect(14, y - 6, 180, 8, 'F');
+            doc.setFillColor(15, 23, 42);
+            doc.setTextColor(255, 255, 255);
+            doc.rect(14, y - 7, 180, 9, 'F');
             doc.text('Name', 16, y);
             doc.text('Salary Limit', 80, y);
             doc.text('Prev Balance', 120, y);
-            doc.text('Total Expense (This Month)', 160, y, { align: 'right' });
+            doc.text('Total Expense (Month)', 190, y, { align: 'right' });
 
             y += 10;
             // Switch to Urdu font for names potentially containing Urdu
@@ -78,6 +83,29 @@ const PeopleManager: React.FC = () => {
             doc.setTextColor(30, 41, 59);
 
             persons.forEach((p, i) => {
+                if (y > 270) {
+                    doc.addPage();
+                    y = 30;
+                    // Header (reprint)
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFillColor(15, 23, 42);
+                    doc.setTextColor(255, 255, 255);
+                    doc.rect(14, y - 7, 180, 9, 'F');
+                    doc.text('Name', 16, y);
+                    doc.text('Salary Limit', 80, y);
+                    doc.text('Prev Balance', 120, y);
+                    doc.text('Total Expense (Month)', 190, y, { align: 'right' });
+
+                    doc.setFont('Amiri', 'normal');
+                    doc.setTextColor(30, 41, 59);
+                    y += 10;
+                }
+
+                if (i % 2 === 0) {
+                    doc.setFillColor(248, 250, 252);
+                    doc.rect(14, y - 6, 180, 9, 'F');
+                }
+
                 const personExpenses = allExpenses
                     .filter(e => e.person_id === p.id && e.date.startsWith(currentMonth))
                     .reduce((sum, e) => sum + e.amount, 0);
@@ -86,7 +114,7 @@ const PeopleManager: React.FC = () => {
                 doc.text(p.salary_limit.toLocaleString(), 80, y);
                 doc.text(p.previous_balance.toLocaleString(), 120, y);
                 doc.text(personExpenses.toLocaleString(), 190, y, { align: 'right' });
-                y += 8;
+                y += 10;
             });
 
             PdfGenerator.addFooter(doc);

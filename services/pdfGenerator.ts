@@ -6,99 +6,81 @@ export class PdfGenerator {
     /**
      * Initializes a new jsPDF instance with the Amiri font loaded for Urdu support.
      */
+    // Branding Palette
+    static readonly colors = {
+        primary: [15, 23, 42],     // Slate 900
+        secondary: [51, 65, 85],   // Slate 700
+        accent: [79, 70, 229],     // Indigo 600
+        success: [16, 185, 129],   // Emerald 500
+        danger: [225, 29, 72],     // Rose 600
+        text: [30, 41, 59],        // Slate 800
+        textLight: [100, 116, 139],// Slate 500 
+        bg: [248, 250, 252],       // Slate 50
+        white: [255, 255, 255]
+    };
+
     static async initPDF(): Promise<jsPDF> {
         const doc = new jsPDF();
 
         try {
             console.log("Initializing PDF with font URL:", amiriFontUrl);
-
-            // Load the Urdu font
             const response = await fetch(amiriFontUrl);
-            if (!response.ok) throw new Error(`Failed to load font from ${amiriFontUrl}: ${response.statusText}`);
+            if (!response.ok) throw new Error(`Failed to load font from ${amiriFontUrl}`);
 
             const fontBlob = await response.blob();
-            console.log("Font blob loaded, size:", fontBlob.size);
-
-            // Validation: Ensure the downloaded file is actually a font (approx > 10KB)
-            if (fontBlob.size < 10000) {
-                throw new Error(`Downloaded font file is too small (${fontBlob.size} bytes). Likely a 404 or corrupted file.`);
-            }
-
-            // Convert Blob to Base64 string using FileReader
             const fontBase64 = await new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onloadend = () => {
-                    const result = reader.result as string;
-                    const base64 = result.split(',')[1];
-                    resolve(base64);
-                };
+                reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
                 reader.onerror = reject;
                 reader.readAsDataURL(fontBlob);
             });
 
-            // Add font to VFS and register it
             doc.addFileToVFS('Amiri-Regular.ttf', fontBase64);
-
-            // Register with Identity-H to support UTF-8/Urdu glyphs correctly
-            // Args: fileName, fontName, fontStyle, fontWeight, encoding
             doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal', 400, 'Identity-H');
-            // Also register as 'bold' (pointing to same file) to prevent fallback to Helvetica 
-            // if style is left as 'bold' from headers.
             doc.addFont('Amiri-Regular.ttf', 'Amiri', 'bold', 700, 'Identity-H');
 
-            doc.setFont('Amiri', 'normal'); // Set as default at document level
-
-            // Verify font is added
-            if (!doc.getFontList()['Amiri']) {
-                console.warn("Font Amiri not found in font list after addition!");
-            }
-
-            console.log("Font 'Amiri' registered with Identity-H.");
-
+            doc.setFont('Amiri', 'normal');
+            return doc;
         } catch (error) {
             console.error("Error loading font:", error);
-            // Re-throw so consumers know initialization failed
             throw error;
         }
-
-        return doc;
     }
 
-    /**
-     * Adds the standard branding header to the PDF.
-     */
-    static addHeader(doc: jsPDF, title: string, subtitle: string, dateInfo: string, isExpense: boolean = true) {
-        const timestamp = new Date().toLocaleString();
+    static addHeader(doc: jsPDF, title: string, subtitle: string, period: string, isExpense?: boolean) {
+        const width = doc.internal.pageSize.width;
 
-        // Top Premium Branding
-        // Blue for general/income, Dark Blue for expense (or customize as needed based on UI)
-        // Actually using the colors from Reports.tsx:
-        // Header background
-        doc.setFillColor(15, 23, 42); // Slate-900 like
-        doc.rect(0, 0, 210, 45, 'F');
+        // 1. Top Bar Background (Dark Slate)
+        doc.setFillColor(15, 23, 42); // Slate 900
+        doc.rect(0, 0, width, 40, 'F');
 
+        // 2. Logo / Brand Name
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(24);
-        doc.setFont('helvetica', 'bold'); // Keep English title in Helvetica for style
-        doc.text('RDF EXPENDITURE', 20, 25);
+        doc.text("RDF", 20, 20);
 
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        // Using Amiri for subtitle if it needs Urdu, otherwise Helvetica
-        doc.text(title.toUpperCase(), 20, 33); // e.g. "MONTHLY FINANCIAL STATEMENT"
+        doc.setTextColor(148, 163, 184); // Slate 400
+        doc.text("Expenditure Management", 20, 26);
 
-        // If subtitle is Urdu, switch font temporarily
-        // doc.setFont('Amiri'); 
-        // doc.text(subtitle, 20, 38); 
+        // 3. Right Side: Report Title
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text(title.toUpperCase(), width - 20, 18, { align: 'right' });
 
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        doc.text(dateInfo.toUpperCase(), 190, 25, { align: 'right' });
-        doc.text(`GENERATED: ${timestamp}`, 190, 31, { align: 'right' });
+        // 4. Period / Subtitle
+        if (period || subtitle) {
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text(dateInfo.toUpperCase(), 190, 25, { align: 'right' });
+            doc.text(`GENERATED: ${timestamp}`, 190, 31, { align: 'right' });
 
-        // Reset to Urdu font for body
-        doc.setFont('Amiri');
-    }
+            // Reset to Urdu font for body
+            doc.setFont('Amiri');
+        }
 
     static addFooter(doc: jsPDF) {
         const pageCount = (doc as any).internal.getNumberOfPages();

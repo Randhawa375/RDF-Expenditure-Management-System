@@ -33,38 +33,38 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
 
       PdfGenerator.addHeader(
         doc,
-        'MONTHLY FINANCIAL STATEMENT',
-        '',
-        `STATEMENT PERIOD: ${monthYear.toUpperCase()}`
+        'FINANCIAL STATEMENT',
+        'RDF EMS',
+        `PERIOD: ${monthYear.toUpperCase()}`
       );
 
       // Financial Summary Dashboard
       doc.setDrawColor(226, 232, 240);
       doc.setFillColor(248, 250, 252);
-      doc.roundedRect(20, 55, 170, 35, 3, 3, 'FD');
+      doc.roundedRect(20, 50, 170, 35, 3, 3, 'FD');
 
       doc.setTextColor(100, 116, 139);
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      doc.text('TOTAL RECEIVED', 30, 65);
-      doc.text('TOTAL EXPENSES', 85, 65);
-      doc.text('NET BALANCE', 140, 65);
+      doc.text('TOTAL RECEIVED', 30, 60);
+      doc.text('TOTAL EXPENSES', 85, 60);
+      doc.text('NET BALANCE', 140, 60);
 
       doc.setTextColor(30, 41, 59);
       doc.setFontSize(14);
-      doc.text(`PKR ${stats.inc.toLocaleString()}`, 30, 78);
-      doc.text(`PKR ${stats.exp.toLocaleString()}`, 85, 78);
+      doc.text(`PKR ${stats.inc.toLocaleString()}`, 30, 73);
+      doc.text(`PKR ${stats.exp.toLocaleString()}`, 85, 73);
 
       const balance = stats.inc - stats.exp;
       if (balance >= 0) doc.setTextColor(16, 185, 129);
       else doc.setTextColor(225, 29, 72);
-      doc.text(`PKR ${balance.toLocaleString()}`, 140, 78);
+      doc.text(`PKR ${balance.toLocaleString()}`, 140, 73);
 
       // Table Header text
-      doc.setTextColor(15, 23, 42);
+      doc.setTextColor(30, 41, 59);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Detailed Transaction History', 20, 100);
+      doc.text('Detailed Transaction History', 20, 95);
 
       const tableColumn = ["Date", "Description / Remarks", "Type", "Amount (PKR)"];
       const tableRows = filtered.map(t => [
@@ -75,31 +75,35 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
       ]);
 
       autoTable(doc, {
-        startY: 110,
+        startY: 100,
         head: [tableColumn],
         body: tableRows,
+        theme: 'grid',
         styles: {
           font: 'Amiri', // Use the Urdu font
           fontStyle: 'normal',
-          fontSize: 10,
+          fontSize: 9,
           textColor: [30, 41, 59],
           valign: 'middle',
-          overflow: 'linebreak'
+          overflow: 'linebreak',
+          cellPadding: 4,
+          lineColor: [226, 232, 240],
+          lineWidth: 0.1,
         },
         headStyles: {
-          fillColor: [241, 245, 249],
-          textColor: [71, 85, 105],
+          fillColor: [15, 23, 42],
+          textColor: [255, 255, 255],
           fontStyle: 'bold',
           font: 'helvetica'
         },
         columnStyles: {
           0: { cellWidth: 30 },
-          1: { cellWidth: 'auto' }, // Description gets remaining space
+          1: { cellWidth: 'auto' },
           2: { cellWidth: 30 },
-          3: { cellWidth: 35, halign: 'right' },
+          3: { cellWidth: 35, halign: 'right', fontStyle: 'bold' },
         },
         alternateRowStyles: {
-          fillColor: [252, 252, 252]
+          fillColor: [248, 250, 252]
         },
         margin: { top: 30, right: 20, left: 20 },
         didParseCell: (data: any) => {

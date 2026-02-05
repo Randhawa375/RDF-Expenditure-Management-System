@@ -63,23 +63,34 @@ const PersonLedgerPage: React.FC = () => {
 
             PdfGenerator.addHeader(
                 doc,
-                `LEDGER: ${person.name}`,
-                '',
+                person.name.toUpperCase(),
+                'PERSONAL LEDGER',
                 `SALARY LIMIT: ${person.salary_limit.toLocaleString()}`
             );
 
+            // Summary Info
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.text(`Previous Balance: ${person.previous_balance.toLocaleString()}`, 14, 42); // Adjust Y if needed based on header
-            doc.text(`Current Month Total: ${totalMonthlyExpense.toLocaleString()}`, 14, 48);
+            doc.setTextColor(100, 116, 139);
 
-            let y = 60;
+            doc.text(`Previous Balance:`, 14, 48);
+            doc.text(`Month Expenses:`, 14, 54);
+
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(30, 41, 59);
+            doc.text(`${person.previous_balance.toLocaleString()}`, 50, 48);
+            doc.text(`${totalMonthlyExpense.toLocaleString()}`, 50, 54);
+
+
+            let y = 70;
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text('Transaction History', 14, 55);
+            doc.text('Transaction History', 14, 65);
 
+            // Table Header
             doc.setFontSize(10);
-            doc.setFillColor(240, 240, 240);
+            doc.setFillColor(15, 23, 42);
+            doc.setTextColor(255, 255, 255);
             doc.rect(14, y - 6, 180, 8, 'F');
             doc.text('Date', 16, y);
             doc.text('Description', 50, y);
@@ -92,19 +103,36 @@ const PersonLedgerPage: React.FC = () => {
             doc.setTextColor(30, 41, 59);
 
             expenses.forEach((e, i) => {
-                if (y > 280) {
+                if (y > 270) {
                     doc.addPage();
-                    y = 20;
+                    y = 30;
+                    // Header (reprint)
+                    doc.setFillColor(15, 23, 42);
+                    doc.setTextColor(255, 255, 255);
+                    doc.rect(14, y - 6, 180, 8, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Date', 16, y);
+                    doc.text('Description', 50, y);
+                    doc.text('Amount', 170, y, { align: 'right' });
+
+                    doc.setFont('Amiri', 'normal');
+                    doc.setTextColor(30, 41, 59);
+                    y += 10;
+                }
+
+                if (i % 2 === 0) {
+                    doc.setFillColor(248, 250, 252);
+                    doc.rect(14, y - 6, 180, 9, 'F');
                 }
 
                 // Helper to draw text with possible Urdu
                 doc.text(e.date, 16, y);
 
                 const desc = e.description.length > 50 ? e.description.substring(0, 47) + '...' : e.description;
-                doc.text(desc, 50, y); // This will now support Urdu because font is Amiri
+                doc.text(desc, 50, y);
 
                 doc.text(e.amount.toLocaleString(), 170, y, { align: 'right' });
-                y += 8;
+                y += 10;
             });
 
             PdfGenerator.addFooter(doc);
