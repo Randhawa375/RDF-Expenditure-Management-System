@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Transaction, TransactionType } from '../types';
 import { jsPDF } from 'jspdf';
 import { PdfGenerator } from '../services/pdfGenerator';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 interface ReportsProps {
   transactions: Transaction[];
@@ -74,7 +74,7 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
         t.amount.toLocaleString()
       ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: 110,
         head: [tableColumn],
         body: tableRows,

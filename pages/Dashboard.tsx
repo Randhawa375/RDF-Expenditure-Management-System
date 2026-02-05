@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType, PersonExpense } from '../types';
 import { jsPDF } from 'jspdf';
 import { PdfGenerator } from '../services/pdfGenerator';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -121,7 +121,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
         t.amount.toLocaleString()
       ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: 110,
         head: [tableColumn],
         body: tableRows,
