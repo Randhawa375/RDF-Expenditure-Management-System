@@ -11,20 +11,33 @@ export class PdfGenerator {
 
         try {
             // Load the Urdu font
-            // Use the imported URL which Vite will resolve correctly in both dev and build
             const response = await fetch(amiriFontUrl);
-            if (!response.ok) throw new Error('Failed to load font');
+            if (!response.ok) throw new Error(`Failed to load font from ${amiriFontUrl}`);
 
-            const fontBuffer = await response.arrayBuffer();
-            // Convert ArrayBuffer to Base64 string
-            const fontBase64 = btoa(
-                new Uint8Array(fontBuffer)
-                    .reduce((data, byte) => data + String.fromCharCode(byte), '')
-            );
+            const fontBlob = await response.blob();
+
+            // Validation: Ensure the downloaded file is actually a font (approx > 10KB)
+            if (fontBlob.size < 10000) {
+                throw new Error(`Downloaded font file is too small (${fontBlob.size} bytes). Likely a 404 or corrupted file.`);
+            }
+
+            // Convert Blob to Base64 string using FileReader (more robust than reduce)
+            const fontBase64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const result = reader.result as string;
+                    // Remove the data URL prefix (e.g., "data:font/ttf;base64,")
+                    const base64 = result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(fontBlob);
+            });
 
             // Add font to VFS and register it
             doc.addFileToVFS('Amiri-Regular.ttf', fontBase64);
-            doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal', 'Identity-H'); // Identity-H is CRITICAL for Urdu/Arabic
+            // Correct argument order: fontName, id, fontStyle, fontWeight, encoding
+            doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal', 400, 'Identity-H'); // Identity-H is CRITICAL for Urdu/Arabic
             doc.setFont('Amiri'); // Set as default
 
             // Enable RTL support if needed by specific text calls, but usually just the font is enough for characters
