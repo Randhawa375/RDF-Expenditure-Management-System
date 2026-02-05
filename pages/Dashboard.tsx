@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Transaction, TransactionType, PersonExpense } from '../types';
+import { Transaction, TransactionType, PersonExpense, MonthlyNote } from '../types';
 import { jsPDF } from 'jspdf';
 import { PdfGenerator } from '../services/pdfGenerator';
 import autoTable from 'jspdf-autotable';
@@ -9,10 +9,25 @@ import autoTable from 'jspdf-autotable';
 interface DashboardProps {
   transactions: Transaction[];
   personExpenses?: PersonExpense[];
+  monthlyNotes?: MonthlyNote[];
+  onSaveNote?: (note: MonthlyNote) => Promise<void>;
+  onDeleteNote?: (id: string) => Promise<void>;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = [] }) => {
+const Dashboard: React.FC<DashboardProps> = ({
+  transactions,
+  personExpenses = [],
+  monthlyNotes = [],
+  onSaveNote,
+  onDeleteNote
+}) => {
   const navigate = useNavigate();
+  const [showBalanceDetails, setShowBalanceDetails] = useState(false);
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteAmount, setNoteAmount] = useState('');
+  const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Asia/Karachi',
@@ -28,6 +43,10 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
   const filteredPersonExpenses = useMemo(() => {
     return personExpenses.filter(e => e.date.startsWith(selectedMonth));
   }, [personExpenses, selectedMonth]);
+
+  const filteredMonthlyNotes = useMemo(() => {
+    return monthlyNotes.filter(n => n.month === selectedMonth);
+  }, [monthlyNotes, selectedMonth]);
 
   const stats = useMemo(() => {
     const mainStats = filteredTransactions.reduce((acc, t) => {
@@ -47,6 +66,58 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
   }, [filteredTransactions, filteredPersonExpenses]);
 
   const profit = stats.totalIncome - stats.totalExpenses;
+
+  // Group Person Expenses for Breakdown
+  const personBreakdown = useMemo(() => {
+    const breakdown: Record<string, { name: string, amount: number }> = {};
+    filteredPersonExpenses.forEach(e => {
+      if (!breakdown[e.person_id]) {
+        // We don't have the name directly here, we might need to rely on the fact that
+        // Person Expenses might need to come with names joined or we look them up?
+        // Ah, PersonExpense doesn't have the name. We need to pass persons list or assume
+        // the App.tsx could enrich it OR just use description which says "(Staff) Desc" in PDF but here?
+        // Wait, PersonExpense has `person_id`.
+        // To show names we need the Person list.
+        // Let's use a workaround: The description usually contains some info? No.
+        // We really should pass `persons` to Dashboard if we want names.
+        // But for now let's just group by ID and maybe we can't show name easily without fetching it?
+        // Actually, let's just LIST the expenses with their descriptions for now or 
+        // request App.tsx to pass persons.
+        // Wait, the user request "to whom person this payment is remaining".
+        // Use the passed PersonExpense list.
+      }
+      // Actually simpler: Just show the list of Staff Expenses in the details view.
+    });
+    return [];
+  }, [filteredPersonExpenses]);
+
+  const handleSaveNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onSaveNote) return;
+    setIsSubmittingNote(true);
+    try {
+      await onSaveNote({
+        id: crypto.randomUUID(),
+        month: selectedMonth,
+        title: noteTitle,
+        amount: Number(noteAmount)
+      });
+      setNoteTitle('');
+      setNoteAmount('');
+      setIsNoteModalOpen(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmittingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (id: string) => {
+    if (onDeleteNote) {
+      await onDeleteNote(id);
+    }
+  };
+
 
   const downloadFullMonthlyReport = async () => {
     try {
@@ -240,8 +311,187 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Net Balance</span>
           <div className={`text-3xl font-black mb-1 leading-none ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>PKR {profit.toLocaleString()}</div>
           <div className={`font-urdu text-xl font-bold ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>بیلنس</div>
+
+          <button
+            onClick={() => setShowBalanceDetails(true)}
+            className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 border-b border-transparent hover:border-indigo-600 transition-all"
+          >
+            View Breakdown / Add Note
+          </button>
         </div>
       </div>
+
+      {/* Balance Details Modal */}
+      {showBalanceDetails && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300 max-h-[90vh] flex flex-col">
+            <div className="bg-slate-900 px-6 py-5 flex justify-between items-center shrink-0">
+              <div>
+                <h2 className="text-xl font-black text-white tracking-tight">Net Balance Details</h2>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">تفصیلات</p>
+              </div>
+              <button
+                onClick={() => setShowBalanceDetails(false)}
+                className="p-2 bg-white/10 text-white hover:bg-white/20 rounded-xl transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto">
+              {/* Calculation Summary */}
+              <div className="bg-indigo-50 p-4 rounded-xl mb-6">
+                <div className="flex justify-between items-center text-sm mb-2">
+                  <span className="font-bold text-slate-600">Total Income</span>
+                  <span className="font-mono font-bold text-emerald-600">+ {stats.totalIncome.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm mb-2">
+                  <span className="font-bold text-slate-600">Total Expense</span>
+                  <span className="font-mono font-bold text-rose-600">- {stats.totalExpenses.toLocaleString()}</span>
+                </div>
+                <div className="border-t border-indigo-200 mt-2 pt-2 flex justify-between items-center">
+                  <span className="font-black text-slate-800">Net Balance</span>
+                  <span className={`font-mono font-black ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
+                    {profit.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Staff Expenses Section */}
+              <div className="mb-6">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Staff Expenses Breakdown (عملہ کے اخراجات)</h3>
+                {filteredPersonExpenses.length === 0 ? (
+                  <p className="text-sm text-slate-400 italic">No staff expenses this month.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredPersonExpenses.map(e => (
+                      <div key={e.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <div>
+                          <p className="font-bold text-slate-700 text-sm">{e.description}</p>
+                          <p className="text-[10px] text-slate-400">{e.date}</p>
+                        </div>
+                        <span className="font-mono font-bold text-rose-500 text-sm">- {e.amount.toLocaleString()}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center px-3 pt-2">
+                      <span className="text-xs font-bold text-slate-500">Total Staff Exp</span>
+                      <span className="font-mono font-bold text-rose-600 text-sm">- {stats.personExpenses.toLocaleString()}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Manual Notes Section */}
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Additional Notes / Payables (دیگر واجبات / نوٹس)</h3>
+                  <button
+                    onClick={() => setIsNoteModalOpen(true)}
+                    className="text-[10px] font-black bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                  >
+                    + Add Note
+                  </button>
+                </div>
+
+                {filteredMonthlyNotes.length === 0 ? (
+                  <p className="text-sm text-slate-400 italic">No notes added.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredMonthlyNotes.map(n => (
+                      <div key={n.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm group">
+                        <div>
+                          <p className="font-bold text-slate-800 text-sm">{n.title}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono font-bold text-slate-700 text-sm">{n.amount.toLocaleString()}</span>
+                          <button
+                            onClick={() => handleDeleteNote(n.id)}
+                            className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 mt-2">
+                      <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wide mb-1">Impact Analysis</p>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-orange-800 font-medium">Net Balance</span>
+                        <span className="font-mono font-bold text-slate-700">{profit.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-orange-800 font-medium">Minus Notes Total</span>
+                        <span className="font-mono font-bold text-rose-600">
+                          - {filteredMonthlyNotes.reduce((sum, n) => sum + n.amount, 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="border-t border-orange-200/50 mt-1 pt-1 flex justify-between items-center text-sm">
+                        <span className="text-orange-900 font-bold">Remaining</span>
+                        <span className="font-mono font-bold text-orange-900">
+                          {(profit - filteredMonthlyNotes.reduce((sum, n) => sum + n.amount, 0)).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Note Modal */}
+      {isNoteModalOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[1px]">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl p-5 animate-in zoom-in-95 duration-200">
+            <h3 className="font-black text-slate-900 text-lg mb-4">Add Balance Note</h3>
+            <form onSubmit={handleSaveNote} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Title / Description</label>
+                <input
+                  type="text"
+                  value={noteTitle}
+                  onChange={(e) => setNoteTitle(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="e.g. Pending Payment to X"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Amount</label>
+                <input
+                  type="number"
+                  value={noteAmount}
+                  onChange={(e) => setNoteAmount(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="0"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsNoteModalOpen(false)}
+                  className="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingNote}
+                  className="px-4 py-2 text-sm font-black text-white bg-slate-900 hover:bg-slate-800 rounded-lg"
+                >
+                  {isSubmittingNote ? 'Saving...' : 'Add Note'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Large Navigation Buttons - 1 column on mobile, 3 on desktop */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -284,7 +534,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, personExpenses = []
           </div>
         </button>
       </div>
-    </div>
+    </div >
   );
 };
 

@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Transaction, User, TransactionType, Person, PersonExpense } from '../types';
+import { Transaction, User, TransactionType, Person, PersonExpense, MonthlyNote } from '../types';
 
 export const db = {
   // Transaction Methods
@@ -197,6 +197,66 @@ export const db = {
   deletePersonExpense: async (id: string): Promise<void> => {
     const { error } = await supabase
       .from('person_expenses')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+  ,
+
+  // Monthly Notes Methods
+  getMonthlyNotes: async (month: string): Promise<MonthlyNote[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('monthly_notes')
+      .select('*')
+      .eq('month', month)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching monthly notes:', error);
+      return [];
+    }
+    return data as MonthlyNote[];
+  },
+
+  getAllMonthlyNotes: async (): Promise<MonthlyNote[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('monthly_notes')
+      .select('*');
+
+    if (error) {
+      console.error('Error fetching all monthly notes:', error);
+      return [];
+    }
+    return data as MonthlyNote[];
+  },
+
+  saveMonthlyNote: async (note: MonthlyNote): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('monthly_notes')
+      .upsert({
+        id: note.id,
+        user_id: user.id,
+        month: note.month,
+        title: note.title,
+        amount: note.amount
+      });
+
+    if (error) throw error;
+  },
+
+  deleteMonthlyNote: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('monthly_notes')
       .delete()
       .eq('id', id);
 

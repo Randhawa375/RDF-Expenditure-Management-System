@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { Transaction, TransactionType, User, PersonExpense } from './types';
+import { Transaction, TransactionType, User, PersonExpense, MonthlyNote } from './types';
 import { db } from './services/db';
 import TransactionModal from './components/TransactionModal';
 import Dashboard from './pages/Dashboard';
@@ -88,6 +88,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null); // Initial state null
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [personExpenses, setPersonExpenses] = useState<PersonExpense[]>([]); // New state
+  const [monthlyNotes, setMonthlyNotes] = useState<MonthlyNote[]>([]); // New state for balance details
   const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -119,12 +120,14 @@ const App: React.FC = () => {
     const fetchTransactions = async () => {
       if (user) {
         setIsLoading(true);
-        const [transData, personExpData] = await Promise.all([
+        const [transData, personExpData, notesData] = await Promise.all([
           db.getTransactions(),
-          db.getAllPersonExpenses()
+          db.getAllPersonExpenses(),
+          db.getAllMonthlyNotes()
         ]);
         setTransactions(transData);
         setPersonExpenses(personExpData);
+        setMonthlyNotes(notesData);
         setIsLoading(false);
       }
     };
@@ -136,9 +139,33 @@ const App: React.FC = () => {
       await db.logout();
       setUser(null);
       setTransactions([]);
+      setTransactions([]);
       setPersonExpenses([]);
+      setMonthlyNotes([]);
     }
   }, []);
+
+  const handleSaveMonthlyNote = async (note: MonthlyNote) => {
+    try {
+      await db.saveMonthlyNote(note);
+      const data = await db.getAllMonthlyNotes();
+      setMonthlyNotes(data);
+    } catch (error) {
+      alert('Error saving note: ' + (error as Error).message);
+    }
+  };
+
+  const handleDeleteMonthlyNote = async (id: string) => {
+    if (window.confirm('Delete this note?')) {
+      try {
+        await db.deleteMonthlyNote(id);
+        const data = await db.getAllMonthlyNotes();
+        setMonthlyNotes(data);
+      } catch (error) {
+        console.error("Error deleting note:", error);
+      }
+    }
+  };
 
   const handleSaveTransaction = async (transaction: Transaction) => {
     try {
@@ -185,7 +212,18 @@ const App: React.FC = () => {
             <Navigation user={user} onLogout={handleLogout} />
             <main className="max-w-7xl mx-auto px-4 py-6 md:py-10 pb-24">
               <Routes>
-                <Route path="/" element={<Dashboard transactions={transactions} personExpenses={personExpenses} />} />
+                <Route
+                  path="/"
+                  element={
+                    <Dashboard
+                      transactions={transactions}
+                      personExpenses={personExpenses}
+                      monthlyNotes={monthlyNotes}
+                      onSaveNote={handleSaveMonthlyNote}
+                      onDeleteNote={handleDeleteMonthlyNote}
+                    />
+                  }
+                />
                 <Route
                   path="/expenses"
                   element={

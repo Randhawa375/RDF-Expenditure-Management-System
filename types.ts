@@ -46,3 +46,10 @@ export interface PersonExpense {
   amount: number;
   created_at?: string;
 }
+
+export interface MonthlyNote {
+  id: string;
+  month: string;
+  title: string;
+  amount: number;
+}
