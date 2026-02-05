@@ -178,41 +178,48 @@ const DailyLedgerPage: React.FC<DailyLedgerPageProps> = ({ type, transactions, o
       <div className="space-y-3">
         {dayItems.length > 0 ? (
           dayItems.map((t) => (
-            <div key={t.id} className="bg-white px-6 py-4 rounded-2xl border border-slate-50 shadow-sm flex items-center justify-between group hover:border-slate-200 transition-all">
-              <div className="flex items-center gap-4 overflow-hidden flex-1">
-                <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center ${isExpense ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            <div key={t.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-md transition-all group relative overflow-hidden">
+              <div className="flex justify-between items-start gap-4">
+                {/* Icon */}
+                <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center ${isExpense ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d={isExpense ? "M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" : "M12 6v6m0 0v6m0-6h6m-6 0H6"} /></svg>
                 </div>
-                <div
-                  className="overflow-hidden cursor-pointer"
-                  onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
-                >
-                  <div className={`font-black text-slate-900 text-base tracking-tight leading-relaxed ${expandedId === t.id ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
-                    {t.description}
+
+                {/* Content */}
+                <div className="flex-1 min-w-0" onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}>
+                  <div className="flex justify-between items-start gap-4">
+                    <div className={`font-urdu font-bold text-slate-800 text-lg leading-[2] tracking-wide ${expandedId === t.id ? 'whitespace-pre-wrap' : 'truncate'}`}>
+                      {t.description}
+                    </div>
+                    <div className={`text-xl font-black shrink-0 ${accentText} tabular-nums tracking-tight`}>
+                      {t.amount.toLocaleString()}
+                    </div>
                   </div>
-                  <div className="text-[8px] text-slate-300 uppercase tracking-widest font-black mt-1.5 leading-none">
-                    {expandedId === t.id ? 'Click to collapse' : 'Click to expand'}
+
+                  {/* Expand/Collapse Indicator */}
+                  <div className="flex items-center gap-1.5 mt-3">
+                    <span className={`text-[9px] font-black uppercase tracking-widest transition-colors ${expandedId === t.id ? 'text-indigo-500' : 'text-slate-300 group-hover:text-slate-400'}`}>
+                      {expandedId === t.id ? 'Show Less' : 'View Details'}
+                    </span>
+                    <svg className={`w-3 h-3 text-slate-300 transition-transform duration-300 ${expandedId === t.id ? 'rotate-180 text-indigo-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-6 shrink-0 ml-4">
-                <div className={`text-xl font-black ${accentText} leading-none`}>
-                  {t.amount.toLocaleString()}
-                </div>
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={() => onEdit(t)}
-                    className="p-2 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                  </button>
-                  <button
-                    onClick={() => onDelete(t.id)}
-                    className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  </button>
-                </div>
+
+              {/* Actions (Only visible when expanded or on hover on desktop) */}
+              <div className={`mt-4 pt-4 border-t border-slate-50 flex justify-end gap-3 transition-all duration-300 ${expandedId === t.id ? 'opacity-100' : 'opacity-0 hidden'}`}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onEdit(t); }}
+                  className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-indigo-100 transition-colors"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(t.id); }}
+                  className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-rose-100 transition-colors"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           ))
