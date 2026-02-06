@@ -15,6 +15,7 @@ const PeopleManager: React.FC = () => {
     // Form State
     const [name, setName] = useState('');
     const [previousBalance, setPreviousBalance] = useState('');
+    const [balanceType, setBalanceType] = useState<'ADVANCE' | 'DUE'>('ADVANCE'); // ADVANCE (+), DUE (-)
     const [salaryLimit, setSalaryLimit] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -130,10 +131,14 @@ const PeopleManager: React.FC = () => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
+            const rawBalance = Number(previousBalance) || 0;
+            // Advance = Positive (Asset), Due (We have to give) = Negative (Liability)
+            const finalBalance = balanceType === 'ADVANCE' ? Math.abs(rawBalance) : -Math.abs(rawBalance);
+
             await db.savePerson({
                 id: crypto.randomUUID(),
                 name,
-                previous_balance: Number(previousBalance) || 0,
+                previous_balance: finalBalance,
                 salary_limit: Number(salaryLimit) || 0
             });
             setIsModalOpen(false);
@@ -162,6 +167,7 @@ const PeopleManager: React.FC = () => {
         setName('');
         setPreviousBalance('');
         setSalaryLimit('');
+        setBalanceType('ADVANCE');
     };
 
     return (
@@ -247,7 +253,11 @@ const PeopleManager: React.FC = () => {
                                             </p>
                                             <p className="flex items-center gap-2">
                                                 <span className="w-20 text-[10px] uppercase tracking-wider font-black opacity-70">Bal (بقیہ):</span>
-                                                <span className="font-mono font-bold text-slate-700">{person.previous_balance.toLocaleString()}</span>
+                                                <span className={`font-mono font-bold ${person.previous_balance >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                                                    }`}>
+                                                    {Math.abs(person.previous_balance).toLocaleString()}
+                                                    {person.previous_balance < 0 && ' (Dr)'}
+                                                </span>
                                             </p>
                                             <p className="flex items-center gap-2 text-rose-600">
                                                 <span className="w-20 text-[10px] uppercase tracking-wider font-black opacity-70">Exp (خرچہ):</span>
@@ -313,7 +323,7 @@ const PeopleManager: React.FC = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                                        Previous Balance (سابقہ بیلنس)
+                                        Opening Balance (سابقہ بیلنس)
                                     </label>
                                     <input
                                         type="number"
@@ -323,18 +333,44 @@ const PeopleManager: React.FC = () => {
                                         placeholder="0"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                                        Salary Limit (حد)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={salaryLimit}
-                                        onChange={(e) => setSalaryLimit(e.target.value)}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
-                                        placeholder="0"
-                                    />
+                                <div className="flex flex-col justify-end pb-1">
+                                    {/* Balance Type Selector */}
+                                    <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
+                                        <button
+                                            type="button"
+                                            onClick={() => setBalanceType('ADVANCE')}
+                                            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${balanceType === 'ADVANCE'
+                                                    ? 'bg-white shadow text-emerald-600'
+                                                    : 'text-slate-400 hover:text-slate-600'
+                                                }`}
+                                        >
+                                            Advance (Advance / Asset)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setBalanceType('DUE')}
+                                            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${balanceType === 'DUE'
+                                                    ? 'bg-white shadow text-rose-600'
+                                                    : 'text-slate-400 hover:text-slate-600'
+                                                }`}
+                                        >
+                                            Payable (Denay hain / Liability)
+                                        </button>
+                                    </div>
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                    Salary Limit (تنخواہ کی حد)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={salaryLimit}
+                                    onChange={(e) => setSalaryLimit(e.target.value)}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
+                                    placeholder="0"
+                                />
                             </div>
 
                             <button
