@@ -317,7 +317,7 @@ const PersonLedgerPage: React.FC = () => {
                             <p className="font-mono font-bold text-emerald-600">+ {allTimeStats.payments.toLocaleString()}</p>
                         </div>
 
-                        <div className="flex justify-between items-center px-3">
+                        <div className="flex justify-between items-center px-3 mb-2">
                             <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full bg-rose-500"></div>
                                 <div>
@@ -327,6 +327,24 @@ const PersonLedgerPage: React.FC = () => {
                             </div>
                             <p className="font-mono font-bold text-rose-600">- {allTimeStats.expenses.toLocaleString()}</p>
                         </div>
+
+                        {/* Monthly Limit Section */}
+                        {(person?.salary_limit || 0) > 0 && (
+                            <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex justify-between items-center mt-4">
+                                <div>
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Remaining Limit (Month)</p>
+                                    <p className="text-[10px] font-urdu text-slate-400">بقیہ ماہانہ حد</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className={`font-mono font-bold text-lg leading-none ${((person?.salary_limit || 0) - stats.expenses) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                        {((person?.salary_limit || 0) - stats.expenses).toLocaleString()}
+                                    </p>
+                                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-0.5">
+                                        Limit: {(person?.salary_limit || 0).toLocaleString()}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Net Balance Big Display */}
