@@ -52,9 +52,15 @@ const PersonLedgerPage: React.FC = () => {
 
     const stats = useMemo(() => {
         const payments = monthlyEntries.filter(e => e.type === 'PAYMENT').reduce((sum, e) => sum + e.amount, 0);
-        const expenses = monthlyEntries.filter(e => e.type === 'EXPENSE' || !e.type).reduce((sum, e) => sum + e.amount, 0);
+        const expenses = monthlyEntries.filter(e => e.type === 'EXPENSE' || e.type === 'RECEIVED' || !e.type).reduce((sum, e) => sum + e.amount, 0);
         return { payments, expenses };
     }, [monthlyEntries]);
+
+    const allTimeStats = useMemo(() => {
+        const payments = entries.filter(e => e.type === 'PAYMENT').reduce((sum, e) => sum + e.amount, 0);
+        const expenses = entries.filter(e => e.type === 'EXPENSE' || e.type === 'RECEIVED' || !e.type).reduce((sum, e) => sum + e.amount, 0);
+        return { payments, expenses };
+    }, [entries]);
 
     // Balance Calculation: Previous Balance + (All Time Payments - All Time Expenses)?
     // Or just Monthly? Usually ledgers are running. 
@@ -77,7 +83,7 @@ const PersonLedgerPage: React.FC = () => {
     const currentBalance = useMemo(() => {
         if (!person) return 0;
         const allPayments = entries.filter(e => e.type === 'PAYMENT').reduce((sum, e) => sum + e.amount, 0);
-        const allExpenses = entries.filter(e => e.type === 'EXPENSE' || !e.type).reduce((sum, e) => sum + e.amount, 0);
+        const allExpenses = entries.filter(e => e.type === 'EXPENSE' || e.type === 'RECEIVED' || !e.type).reduce((sum, e) => sum + e.amount, 0);
         return (person.previous_balance || 0) + allPayments - allExpenses;
     }, [person, entries]);
 
@@ -126,9 +132,10 @@ const PersonLedgerPage: React.FC = () => {
             // Let's stick to list order (Newest First) or sort. Newest first is standard for dashboards.
             const tableRows = monthlyEntries.map(e => {
                 const isPayment = e.type === 'PAYMENT';
+                const isReceived = e.type === 'RECEIVED';
                 return [
                     e.date,
-                    isPayment ? 'Payment Received' : 'Expense',
+                    isPayment ? 'Payment Given' : isReceived ? 'Payment Received' : 'Expense',
                     e.description,
                     isPayment ? `${e.amount.toLocaleString()}` : '-',
                     !isPayment ? `${e.amount.toLocaleString()}` : '-'
@@ -280,38 +287,60 @@ const PersonLedgerPage: React.FC = () => {
                 </button>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Payments Given */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                    <p className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1">Total Payments (کل دی گئی رقم)</p>
-                    <p className="text-3xl font-black text-emerald-600">
-                        {stats.payments.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-slate-300 font-bold mt-1">This Month</p>
+            {/* Financial Statement Summary */}
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+                <div className="bg-slate-50/50 border-b border-slate-100 px-6 py-4">
+                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">Financial Summary (مالیاتی خلاصہ)</h3>
                 </div>
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
 
-                {/* Expenses Made */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                    <p className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1">Total Expenses (کل خرچہ)</p>
-                    <p className="text-3xl font-black text-rose-600">
-                        {stats.expenses.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-slate-300 font-bold mt-1">This Month</p>
-                </div>
+                    {/* Breakdown List */}
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <div>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Previous Balance</p>
+                                <p className="text-[10px] font-urdu text-slate-400">سابقہ بیلنس (شروعاتی)</p>
+                            </div>
+                            <p className={`font-mono font-bold text-lg ${(person?.previous_balance || 0) < 0 ? 'text-rose-500' : 'text-slate-700'}`}>
+                                {(person?.previous_balance || 0).toLocaleString()}
+                            </p>
+                        </div>
 
-                {/* Current Balance */}
-                <div className={`p-5 rounded-2xl border shadow-sm flex flex-col items-center justify-center text-center transition-colors ${isNegativeBalance ? 'bg-rose-50 border-rose-100' : 'bg-indigo-50 border-indigo-100'
-                    }`}>
-                    <p className={`text-[10px] uppercase tracking-widest font-black mb-1 ${isNegativeBalance ? 'text-rose-400' : 'text-indigo-400'
-                        }`}>Net Balance (بقیہ رقم)</p>
-                    <p className={`text-4xl font-black ${isNegativeBalance ? 'text-rose-600' : 'text-indigo-600'
-                        }`}>
-                        {currentBalance.toLocaleString()}
-                    </p>
-                    <p className={`text-xs font-bold mt-1 ${isNegativeBalance ? 'text-rose-400' : 'text-indigo-400'}`}>
-                        {isNegativeBalance ? '(You Owe/Overspent)' : '(In Hand/Remaining)'}
-                    </p>
+                        <div className="flex justify-between items-center px-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-700">Total Payments (All Time)</p>
+                                    <p className="text-[10px] font-urdu text-slate-400">کل ادائیگی (دی گئی)</p>
+                                </div>
+                            </div>
+                            <p className="font-mono font-bold text-emerald-600">+ {allTimeStats.payments.toLocaleString()}</p>
+                        </div>
+
+                        <div className="flex justify-between items-center px-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-rose-500"></div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-700">Total Expenses / Received (All Time)</p>
+                                    <p className="text-[10px] font-urdu text-slate-400">کل خرچہ / وصولی</p>
+                                </div>
+                            </div>
+                            <p className="font-mono font-bold text-rose-600">- {allTimeStats.expenses.toLocaleString()}</p>
+                        </div>
+                    </div>
+
+                    {/* Net Balance Big Display */}
+                    <div className={`rounded-2xl p-6 text-center border-2 border-dashed ${isNegativeBalance ? 'bg-rose-50 border-rose-200' : 'bg-indigo-50 border-indigo-200'}`}>
+                        <p className={`text-xs font-black uppercase tracking-widest mb-2 ${isNegativeBalance ? 'text-rose-400' : 'text-indigo-400'}`}>
+                            Net Current Balance (موجودہ بیلنس)
+                        </p>
+                        <p className={`text-5xl font-black mb-2 tracking-tight ${isNegativeBalance ? 'text-rose-600' : 'text-indigo-600'}`}>
+                            {currentBalance.toLocaleString()}
+                        </p>
+                        <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isNegativeBalance ? 'bg-rose-100 text-rose-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                            {isNegativeBalance ? 'Liability (We Owe)' : 'Asset (In Hand)'}
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -335,17 +364,18 @@ const PersonLedgerPage: React.FC = () => {
                         <div className="block md:hidden divide-y divide-slate-100">
                             {monthlyEntries.map((entry) => {
                                 const isPayment = entry.type === 'PAYMENT';
+                                const isReceived = entry.type === 'RECEIVED';
                                 return (
                                     <div key={entry.id} className="p-4 hover:bg-slate-50 transition-colors">
                                         <div className="flex justify-between items-start mb-2">
                                             <div className="flex flex-col">
-                                                <span className={`font-black text-lg ${isPayment ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                <span className={`font-black text-lg ${isPayment ? 'text-emerald-600' : isReceived ? 'text-indigo-600' : 'text-rose-600'}`}>
                                                     {isPayment ? '+' : '-'} {entry.amount.toLocaleString()}
                                                 </span>
                                                 <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">
                                                     {new Date(entry.date).toLocaleDateString('en-GB', {
                                                         weekday: 'short', day: 'numeric', month: 'short'
-                                                    })} • {isPayment ? 'PAYMENT' : 'EXPENSE'}
+                                                    })} • {isPayment ? 'PAYMENT' : isReceived ? 'RECEIVED' : 'EXPENSE'}
                                                 </span>
                                             </div>
                                             <button onClick={() => handleDeleteEntry(entry.id)} className="text-slate-300 hover:text-rose-500">
@@ -373,21 +403,24 @@ const PersonLedgerPage: React.FC = () => {
                                 <tbody className="divide-y divide-slate-100">
                                     {monthlyEntries.map((entry) => {
                                         const isPayment = entry.type === 'PAYMENT';
+                                        const isReceived = entry.type === 'RECEIVED';
                                         return (
                                             <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
                                                 <td className="px-6 py-4 font-bold text-slate-900 whitespace-nowrap">
                                                     {new Date(entry.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${isPayment ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                                                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${isPayment ? 'bg-emerald-100 text-emerald-700' :
+                                                        isReceived ? 'bg-indigo-100 text-indigo-700' : 'bg-rose-100 text-rose-700'
                                                         }`}>
-                                                        {isPayment ? 'Payment' : 'Expense'}
+                                                        {isPayment ? 'Payment' : isReceived ? 'Received' : 'Expense'}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-slate-600 max-w-xs truncate" title={entry.description}>
                                                     {entry.description || '-'}
                                                 </td>
-                                                <td className={`px-6 py-4 text-right font-mono font-bold ${isPayment ? 'text-emerald-600' : 'text-rose-600'
+                                                <td className={`px-6 py-4 text-right font-mono font-bold ${isPayment ? 'text-emerald-600' :
+                                                    isReceived ? 'text-indigo-600' : 'text-rose-600'
                                                     }`}>
                                                     {entry.amount.toLocaleString()}
                                                 </td>

@@ -102,8 +102,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             </div>
           </div>
 
-          {/* Person Selector (Only for Expenses) */}
-          {isExpense && !editTransaction && persons.length > 0 && (
+          {/* Person Selector */}
+          {!editTransaction && persons.length > 0 && (
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">
                 Link to Person (کسی فرد سے منسلک کریں)

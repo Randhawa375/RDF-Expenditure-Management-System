@@ -176,13 +176,16 @@ const App: React.FC = () => {
       await db.saveTransaction(transaction);
 
       // 2. If Person Linked, Save to Person Ledger
-      if (personId && transaction.type === TransactionType.EXPENSE) {
+      if (personId) {
+        const personExpenseType = transaction.type === TransactionType.INCOME ? 'RECEIVED' : 'EXPENSE';
+
         await db.savePersonExpense({
           id: crypto.randomUUID(),
           person_id: personId,
           date: transaction.date,
           description: transaction.description,
-          amount: transaction.amount
+          amount: transaction.amount,
+          type: personExpenseType
         });
         // Refresh person expenses
         const pExpenses = await db.getAllPersonExpenses();
