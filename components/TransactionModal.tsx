@@ -121,7 +121,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               onClick={() => setFormData({ ...formData, type: TransactionType.TRANSFER })}
               className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isTransfer ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              Transfer
+              Transfer (ٹرانسفر)
             </button>
           </div>
         )}
@@ -146,7 +146,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           {isTransfer && !editTransaction && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 leading-none">From (Sender)</label>
+                <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 leading-none">From (Sender / دینے والا)</label>
                 <select
                   value={selectedPersonId}
                   onChange={(e) => setSelectedPersonId(e.target.value)}
@@ -159,7 +159,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-2 leading-none">To (Receiver)</label>
+                <label className="block text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-2 leading-none">To (Receiver / لینے والا)</label>
                 <select
                   value={targetPersonId}
                   onChange={(e) => setTargetPersonId(e.target.value)}

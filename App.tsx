@@ -338,7 +338,8 @@ const App: React.FC = () => {
               editTransaction={editingTransaction}
               defaultDate={defaultDate}
               defaultType={forcedType}
-              isTypeLocked={!!forcedType}
+              defaultType={forcedType}
+              isTypeLocked={false}
               persons={persons}
             />
           </>
