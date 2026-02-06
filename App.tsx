@@ -102,6 +102,7 @@ const App: React.FC = () => {
     }).format(new Date());
   });
   const [forcedType, setForcedType] = useState<TransactionType | undefined>(undefined);
+  const [modalAllowedTabs, setModalAllowedTabs] = useState<TransactionType[]>([TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER]);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -246,9 +247,10 @@ const App: React.FC = () => {
     }
   };
 
-  const openAddModal = (date?: string, type?: TransactionType) => {
+  const openAddModal = (date?: string, type?: TransactionType, allowedTabs?: TransactionType[]) => {
     if (date) setDefaultDate(date);
     setForcedType(type);
+    setModalAllowedTabs(allowedTabs || [TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER]);
     setEditingTransaction(null);
     setIsModalOpen(true);
   };
@@ -276,7 +278,7 @@ const App: React.FC = () => {
                       monthlyNotes={monthlyNotes}
                       onSaveNote={handleSaveMonthlyNote}
                       onDeleteNote={handleDeleteMonthlyNote}
-                      onAdd={() => openAddModal()}
+                      onAdd={() => openAddModal(undefined, undefined, [TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER])}
                     />
                   }
                 />
@@ -286,7 +288,7 @@ const App: React.FC = () => {
                     <TransactionsPage
                       type={TransactionType.EXPENSE}
                       transactions={transactions}
-                      onAdd={() => openAddModal(undefined, TransactionType.EXPENSE)}
+                      onAdd={() => openAddModal(undefined, TransactionType.EXPENSE, [TransactionType.EXPENSE, TransactionType.TRANSFER])}
                     />
                   }
                 />
@@ -298,7 +300,7 @@ const App: React.FC = () => {
                       transactions={transactions}
                       onEdit={(t) => { setEditingTransaction(t); setForcedType(undefined); setIsModalOpen(true); }}
                       onDelete={handleDeleteTransaction}
-                      onAdd={(date) => openAddModal(date, TransactionType.EXPENSE)}
+                      onAdd={(date) => openAddModal(date, TransactionType.EXPENSE, [TransactionType.EXPENSE, TransactionType.TRANSFER])}
                     />
                   }
                 />
@@ -308,7 +310,7 @@ const App: React.FC = () => {
                     <TransactionsPage
                       type={TransactionType.INCOME}
                       transactions={transactions}
-                      onAdd={() => openAddModal(undefined, TransactionType.INCOME)}
+                      onAdd={() => openAddModal(undefined, TransactionType.INCOME, [TransactionType.INCOME, TransactionType.TRANSFER])}
                     />
                   }
                 />
@@ -320,7 +322,7 @@ const App: React.FC = () => {
                       transactions={transactions}
                       onEdit={(t) => { setEditingTransaction(t); setForcedType(undefined); setIsModalOpen(true); }}
                       onDelete={handleDeleteTransaction}
-                      onAdd={(date) => openAddModal(date, TransactionType.INCOME)}
+                      onAdd={(date) => openAddModal(date, TransactionType.INCOME, [TransactionType.INCOME, TransactionType.TRANSFER])}
                     />
                   }
                 />
@@ -338,9 +340,9 @@ const App: React.FC = () => {
               editTransaction={editingTransaction}
               defaultDate={defaultDate}
               defaultType={forcedType}
-              defaultType={forcedType}
               isTypeLocked={false}
               persons={persons}
+              allowedTabs={modalAllowedTabs}
             />
           </>
         )}

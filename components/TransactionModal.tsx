@@ -11,6 +11,7 @@ interface TransactionModalProps {
   defaultDate?: string;
   isTypeLocked?: boolean;
   persons?: Person[];
+  allowedTabs?: TransactionType[];
 }
 
 const TransactionModal: React.FC<TransactionModalProps> = ({
@@ -21,7 +22,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   defaultType = TransactionType.EXPENSE,
   defaultDate,
   isTypeLocked = false,
-  persons = []
+  persons = [],
+  allowedTabs = [TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER]
 }) => {
   const [formData, setFormData] = useState<Partial<Transaction>>({
     type: defaultType,
@@ -102,27 +104,33 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           </button>
         </div>
 
-        {/* Type Switcher */}
-        {!isTypeLocked && !editTransaction && (
-          <div className="flex p-1 bg-slate-100 rounded-xl mb-6">
-            <button
-              onClick={() => setFormData({ ...formData, type: TransactionType.EXPENSE })}
-              className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isExpense ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              Expense
-            </button>
-            <button
-              onClick={() => setFormData({ ...formData, type: TransactionType.INCOME })}
-              className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isIncome ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              Income
-            </button>
-            <button
-              onClick={() => setFormData({ ...formData, type: TransactionType.TRANSFER })}
-              className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isTransfer ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              Transfer (ٹرانسفر)
-            </button>
+        {/* Type Switcher - Context Aware */}
+        {!isTypeLocked && !editTransaction && allowedTabs.length > 1 && (
+          <div className="flex p-1 bg-slate-100 rounded-xl mb-6 gap-1">
+            {allowedTabs.includes(TransactionType.EXPENSE) && (
+              <button
+                onClick={() => setFormData({ ...formData, type: TransactionType.EXPENSE })}
+                className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isExpense ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                Expense
+              </button>
+            )}
+            {allowedTabs.includes(TransactionType.INCOME) && (
+              <button
+                onClick={() => setFormData({ ...formData, type: TransactionType.INCOME })}
+                className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isIncome ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                Income
+              </button>
+            )}
+            {allowedTabs.includes(TransactionType.TRANSFER) && (
+              <button
+                onClick={() => setFormData({ ...formData, type: TransactionType.TRANSFER })}
+                className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isTransfer ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                Transfer (ٹرانسفر)
+              </button>
+            )}
           </div>
         )}
 
