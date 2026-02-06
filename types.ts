@@ -44,6 +44,7 @@ export interface PersonExpense {
   date: string;
   description: string;
   amount: number;
+  type?: 'PAYMENT' | 'EXPENSE';
   created_at?: string;
 }
 

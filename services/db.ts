@@ -188,7 +188,8 @@ export const db = {
         user_id: user.id,
         date: expense.date,
         description: expense.description,
-        amount: expense.amount
+        amount: expense.amount,
+        type: expense.type || 'EXPENSE'
       });
 
     if (error) throw error;
