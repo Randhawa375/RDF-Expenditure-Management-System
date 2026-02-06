@@ -187,7 +187,7 @@ const DailyLedgerPage: React.FC<DailyLedgerPageProps> = ({ type, transactions, o
                 <div className="flex justify-between items-start gap-4">
                   {/* Icon */}
                   <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center ${isTransfer ? 'bg-indigo-50 text-indigo-500' :
-                      isExpense ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'
+                    isExpense ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'
                     }`}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       {isTransfer ? (
@@ -235,7 +235,8 @@ const DailyLedgerPage: React.FC<DailyLedgerPageProps> = ({ type, transactions, o
                   </button>
                 </div>
               </div>
-            ))
+            );
+          })
         ) : (
           <div className="bg-white border border-slate-50 rounded-3xl p-12 text-center">
             <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
