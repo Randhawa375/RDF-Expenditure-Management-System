@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { Transaction, TransactionType, User, PersonExpense, MonthlyNote } from './types';
+import { Transaction, TransactionType, User, PersonExpense, MonthlyNote, Person } from './types';
 import { db } from './services/db';
 import TransactionModal from './components/TransactionModal';
 import Dashboard from './pages/Dashboard';
@@ -89,6 +89,7 @@ const App: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [personExpenses, setPersonExpenses] = useState<PersonExpense[]>([]); // New state
   const [monthlyNotes, setMonthlyNotes] = useState<MonthlyNote[]>([]); // New state for balance details
+  const [persons, setPersons] = useState<Person[]>([]); // Persons list for dropdown
   const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -120,14 +121,16 @@ const App: React.FC = () => {
     const fetchTransactions = async () => {
       if (user) {
         setIsLoading(true);
-        const [transData, personExpData, notesData] = await Promise.all([
+        const [transData, personExpData, notesData, personsData] = await Promise.all([
           db.getTransactions(),
           db.getAllPersonExpenses(),
-          db.getAllMonthlyNotes()
+          db.getAllMonthlyNotes(),
+          db.getPersons()
         ]);
         setTransactions(transData);
         setPersonExpenses(personExpData);
         setMonthlyNotes(notesData);
+        setPersons(personsData);
         setIsLoading(false);
       }
     };
@@ -167,9 +170,26 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSaveTransaction = async (transaction: Transaction) => {
+  const handleSaveTransaction = async (transaction: Transaction, personId?: string) => {
     try {
+      // 1. Save to Main Ledger
       await db.saveTransaction(transaction);
+
+      // 2. If Person Linked, Save to Person Ledger
+      if (personId && transaction.type === TransactionType.EXPENSE) {
+        await db.savePersonExpense({
+          id: crypto.randomUUID(),
+          person_id: personId,
+          date: transaction.date,
+          description: transaction.description,
+          amount: transaction.amount
+        });
+        // Refresh person expenses
+        const pExpenses = await db.getAllPersonExpenses();
+        setPersonExpenses(pExpenses);
+      }
+
+      // Refresh transactions
       const data = await db.getTransactions();
       setTransactions(data);
       setEditingTransaction(null);
@@ -283,6 +303,7 @@ const App: React.FC = () => {
               defaultDate={defaultDate}
               defaultType={forcedType}
               isTypeLocked={!!forcedType}
+              persons={persons}
             />
           </>
         )}

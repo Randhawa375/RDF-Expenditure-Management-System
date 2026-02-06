@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { Transaction, TransactionType } from '../types';
+import { Transaction, TransactionType, Person } from '../types';
 
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (transaction: Transaction) => void;
+  onSave: (transaction: Transaction, personId?: string) => void;
   editTransaction?: Transaction | null;
   defaultType?: TransactionType;
   defaultDate?: string;
   isTypeLocked?: boolean;
+  persons?: Person[];
 }
 
 const TransactionModal: React.FC<TransactionModalProps> = ({
@@ -19,7 +20,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   editTransaction,
   defaultType = TransactionType.EXPENSE,
   defaultDate,
-  isTypeLocked = false
+  isTypeLocked = false,
+  persons = []
 }) => {
   const [formData, setFormData] = useState<Partial<Transaction>>({
     type: defaultType,
@@ -34,10 +36,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     amount: 0,
     description: '',
   });
+  const [selectedPersonId, setSelectedPersonId] = useState<string>('');
 
   useEffect(() => {
     if (editTransaction) {
       setFormData(editTransaction);
+      setSelectedPersonId(''); // Reset person on edit for now as we don't track it in main transaction yet
     } else {
       setFormData({
         type: defaultType,
@@ -52,6 +56,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
         amount: 0,
         description: ''
       });
+      setSelectedPersonId('');
     }
   }, [editTransaction, defaultType, defaultDate, isOpen]);
 
@@ -61,13 +66,13 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   const isExpense = activeType === TransactionType.EXPENSE;
   const accentColor = isExpense ? 'bg-rose-500' : 'bg-emerald-500';
   const accentBorder = isExpense ? 'border-rose-100' : 'border-emerald-100';
-  const accentText = isExpense ? 'text-rose-600' : 'text-emerald-600';
+  // const accentText = isExpense ? 'text-rose-600' : 'text-emerald-600'; // Unused
 
   const shouldHideDate = !!defaultDate && !editTransaction;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/10 backdrop-blur-md">
-      <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-50">
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/20 backdrop-blur-sm">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm p-6 shadow-2xl animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 border border-slate-50 max-h-[90vh] overflow-y-auto">
 
         <div className="flex justify-between items-start mb-6">
           <div>
@@ -97,6 +102,27 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             </div>
           </div>
 
+          {/* Person Selector (Only for Expenses) */}
+          {isExpense && !editTransaction && persons.length > 0 && (
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">
+                Link to Person (کسی فرد سے منسلک کریں)
+              </label>
+              <select
+                value={selectedPersonId}
+                onChange={(e) => setSelectedPersonId(e.target.value)}
+                className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-100 transition-all font-bold text-slate-700 text-sm appearance-none"
+              >
+                <option value="">-- No Person (کوئی نہیں) --</option>
+                {persons.map(person => (
+                  <option key={person.id} value={person.id}>
+                    {person.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Description Input */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">Description (تفصیل)</label>
@@ -124,7 +150,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
 
         <div className="mt-8">
           <button
-            onClick={() => onSave({ ...formData, id: editTransaction?.id || crypto.randomUUID() } as Transaction)}
+            onClick={() => onSave({ ...formData, id: editTransaction?.id || crypto.randomUUID() } as Transaction, selectedPersonId)}
             className={`w-full py-4 ${accentColor} text-white rounded-2xl text-lg font-urdu font-black shadow-lg hover:brightness-105 active:scale-95 transition-all`}
           >
             محفوظ کریں (Save)
