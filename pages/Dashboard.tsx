@@ -12,6 +12,7 @@ interface DashboardProps {
   monthlyNotes?: MonthlyNote[];
   onSaveNote?: (note: MonthlyNote) => Promise<void>;
   onDeleteNote?: (id: string) => Promise<void>;
+  onAdd: () => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -19,7 +20,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   personExpenses = [],
   monthlyNotes = [],
   onSaveNote,
-  onDeleteNote
+  onDeleteNote,
+  onAdd
 }) => {
   const navigate = useNavigate();
   const [activeDetailView, setActiveDetailView] = useState<'income' | 'expense' | 'balance' | null>(null);
@@ -59,7 +61,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     const mainStats = todayTrans.reduce((acc, t) => {
       if (t.type === TransactionType.INCOME) acc.totalIncome += t.amount;
-      else acc.totalExpenses += t.amount;
+      else if (t.type === TransactionType.EXPENSE) acc.totalExpenses += t.amount;
       return acc;
     }, { totalIncome: 0, totalExpenses: 0 });
 
@@ -78,7 +80,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const stats = useMemo(() => {
     const mainStats = filteredTransactions.reduce((acc, t) => {
       if (t.type === TransactionType.INCOME) acc.totalIncome += t.amount;
-      else acc.totalExpenses += t.amount;
+      else if (t.type === TransactionType.EXPENSE) acc.totalExpenses += t.amount;
       return acc;
     }, { totalIncome: 0, totalExpenses: 0 });
 

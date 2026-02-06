@@ -276,6 +276,7 @@ const App: React.FC = () => {
                       monthlyNotes={monthlyNotes}
                       onSaveNote={handleSaveMonthlyNote}
                       onDeleteNote={handleDeleteMonthlyNote}
+                      onAdd={() => openAddModal()}
                     />
                   }
                 />
