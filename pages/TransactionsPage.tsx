@@ -43,7 +43,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
   }, [selectedMonth]);
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => t.type === type && t.date.startsWith(selectedMonth));
+    return transactions.filter(t => (t.type === type || (type === TransactionType.EXPENSE && t.type === TransactionType.TRANSFER)) && t.date.startsWith(selectedMonth));
   }, [transactions, type, selectedMonth]);
 
   const dailyTotals = useMemo(() => {
