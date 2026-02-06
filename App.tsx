@@ -170,31 +170,63 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSaveTransaction = async (transaction: Transaction, personId?: string) => {
+  const handleSaveTransaction = async (transaction: Transaction, personId?: string, targetPersonId?: string) => {
     try {
-      // 1. Save to Main Ledger
+      // 1. Save to Main Ledger (All types including TRANSFER)
       await db.saveTransaction(transaction);
 
-      // 2. If Person Linked, Save to Person Ledger
-      if (personId) {
-        const personExpenseType = transaction.type === TransactionType.INCOME ? 'RECEIVED' : 'EXPENSE';
+      // 2. Handle Person Linking
+      if (transaction.type === TransactionType.TRANSFER) {
+        if (personId && targetPersonId) {
+          // Find names for clearer descriptions
+          const sender = persons.find(p => p.id === personId);
+          const receiver = persons.find(p => p.id === targetPersonId);
+          const senderName = sender?.name || 'Unknown';
+          const receiverName = receiver?.name || 'Unknown';
 
-        await db.savePersonExpense({
-          id: crypto.randomUUID(),
-          person_id: personId,
-          date: transaction.date,
-          description: transaction.description,
-          amount: transaction.amount,
-          type: personExpenseType
-        });
-        // Refresh person expenses
-        const pExpenses = await db.getAllPersonExpenses();
-        setPersonExpenses(pExpenses);
+          // A. Sender Ledger (Gave Money -> Expense/Decrease)
+          await db.savePersonExpense({
+            id: crypto.randomUUID(),
+            person_id: personId,
+            date: transaction.date,
+            description: `${transaction.description} (To ${receiverName})`,
+            amount: transaction.amount,
+            type: 'EXPENSE'
+          });
+
+          // B. Receiver Ledger (Got Money -> Payment/Increase)
+          await db.savePersonExpense({
+            id: crypto.randomUUID(),
+            person_id: targetPersonId,
+            date: transaction.date,
+            description: `${transaction.description} (From ${senderName})`,
+            amount: transaction.amount,
+            type: 'PAYMENT'
+          });
+        }
+      } else {
+        // Standard Income/Expense Link
+        if (personId) {
+          const personExpenseType = transaction.type === TransactionType.INCOME ? 'RECEIVED' : 'EXPENSE';
+
+          await db.savePersonExpense({
+            id: crypto.randomUUID(),
+            person_id: personId,
+            date: transaction.date,
+            description: transaction.description,
+            amount: transaction.amount,
+            type: personExpenseType
+          });
+        }
       }
 
-      // Refresh transactions
-      const data = await db.getTransactions();
-      setTransactions(data);
+      // Refresh person expenses & transactions
+      const [pExpenses, transData] = await Promise.all([
+        db.getAllPersonExpenses(),
+        db.getTransactions()
+      ]);
+      setPersonExpenses(pExpenses);
+      setTransactions(transData);
       setEditingTransaction(null);
       setIsModalOpen(false);
     } catch (error) {
