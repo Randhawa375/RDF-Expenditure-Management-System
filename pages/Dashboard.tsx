@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Transaction, TransactionType, PersonExpense, MonthlyNote, Person } from '../types';
+import { Transaction, TransactionType, PersonExpense, MonthlyNote } from '../types';
 import { jsPDF } from 'jspdf';
 import { PdfGenerator } from '../services/pdfGenerator';
 import autoTable from 'jspdf-autotable';
@@ -10,7 +10,6 @@ interface DashboardProps {
   transactions: Transaction[];
   personExpenses?: PersonExpense[];
   monthlyNotes?: MonthlyNote[];
-  persons: Person[];
   onSaveNote?: (note: MonthlyNote) => Promise<void>;
   onDeleteNote?: (id: string) => Promise<void>;
   onAdd: () => void;
@@ -20,7 +19,6 @@ const Dashboard: React.FC<DashboardProps> = ({
   transactions,
   personExpenses = [],
   monthlyNotes = [],
-  persons = [],
   onSaveNote,
   onDeleteNote,
   onAdd
@@ -107,30 +105,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     };
   }, [filteredTransactions, filteredPersonExpenses, filteredMonthlyNotes]);
 
-  const netBalance = stats.totalIncome - stats.totalExpenses - stats.personExpenses - stats.notesTotal;
-
-  // Group Person Expenses for Breakdown and Debt Tracking
-  const personNetBalances = useMemo(() => {
-    const balances: Record<string, { name: string, balance: number }> = {};
-
-    // Initialize with all persons
-    persons.forEach(p => {
-      balances[p.id] = { name: p.name, balance: 0 };
-    });
-
-    // Calculate monthly net for each person
-    // (Payments they received - Expenses they paid)
-    filteredPersonExpenses.forEach(e => {
-      if (!balances[e.person_id]) return;
-      if (e.type === 'PAYMENT' || e.type === 'RECEIVED') {
-        balances[e.person_id].balance += e.amount;
-      } else if (e.type === 'EXPENSE') {
-        balances[e.person_id].balance -= e.amount;
-      }
-    });
-
-    return Object.values(balances);
-  }, [filteredPersonExpenses, persons]);
+  const netBalance = stats.totalIncome - stats.totalExpenses - stats.notesTotal;
 
   const handleSaveNote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -409,10 +384,10 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Net Balance Breakdown Items */}
+                  {/* Manual Notes/Details */}
                   <div className="mb-6">
                     <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Balance Breakdown / Details (بیلنس کی تفصیل)</h3>
+                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Additional Details (دیگر تفصیلات)</h3>
                       <button
                         onClick={() => setIsNoteModalOpen(true)}
                         className="text-[10px] font-black bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
@@ -422,62 +397,26 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
 
                     <div className="space-y-4">
-                      {/* People we Owe Money (Udhar) */}
-                      {personNetBalances.some(p => p.balance < 0) && (
-                        <div>
-                          <p className="text-[10px] font-black text-rose-500 uppercase tracking-wider mb-2">People we owe money (ادھار)</p>
-                          <div className="space-y-2">
-                            {personNetBalances.filter(p => p.balance < 0).map(p => (
-                              <div key={p.name} className="flex justify-between items-center bg-white p-3 rounded-lg border border-rose-100 shadow-sm">
-                                <p className="font-bold text-slate-700 text-sm">{p.name}</p>
-                                <span className="font-mono font-bold text-rose-500 text-sm">PKR {Math.abs(p.balance).toLocaleString()}</span>
+                      {filteredMonthlyNotes.length > 0 ? (
+                        <div className="space-y-2">
+                          {filteredMonthlyNotes.map(n => (
+                            <div key={n.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm group">
+                              <p className="font-bold text-slate-800 text-sm">{n.title}</p>
+                              <div className="flex items-center gap-3">
+                                <span className="font-mono font-bold text-rose-500 text-sm">- {n.amount.toLocaleString()}</span>
+                                <button
+                                  onClick={() => handleDeleteNote(n.id)}
+                                  className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          ))}
                         </div>
-                      )}
-
-                      {/* People having Cash (Cash with Staff) */}
-                      {personNetBalances.some(p => p.balance > 0) && (
-                        <div>
-                          <p className="text-[10px] font-black text-emerald-500 uppercase tracking-wider mb-2">Cash with staff (موجودہ نقدی)</p>
-                          <div className="space-y-2">
-                            {personNetBalances.filter(p => p.balance > 0).map(p => (
-                              <div key={p.name} className="flex justify-between items-center bg-white p-3 rounded-lg border border-emerald-100 shadow-sm">
-                                <p className="font-bold text-slate-700 text-sm">{p.name}</p>
-                                <span className="font-mono font-bold text-emerald-600 text-sm">PKR {p.balance.toLocaleString()}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Manual Notes/Details */}
-                      {filteredMonthlyNotes.length > 0 && (
-                        <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Additional Details (دیگر تفصیلات)</p>
-                          <div className="space-y-2">
-                            {filteredMonthlyNotes.map(n => (
-                              <div key={n.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm group">
-                                <p className="font-bold text-slate-800 text-sm">{n.title}</p>
-                                <div className="flex items-center gap-3">
-                                  <span className="font-mono font-bold text-rose-500 text-sm">- {n.amount.toLocaleString()}</span>
-                                  <button
-                                    onClick={() => handleDeleteNote(n.id)}
-                                    className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {(personNetBalances.every(p => p.balance === 0) && filteredMonthlyNotes.length === 0) && (
+                      ) : (
                         <p className="text-sm text-slate-400 italic text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                           No additional breakdown items for this month.
                         </p>
@@ -493,7 +432,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <div className="flex justify-between items-end">
                       <div>
                         <p className="font-urdu text-2xl font-black">کل بیلنس</p>
-                        <p className="text-[10px] text-white/60 mt-1">(Income - Expenses - Staff/Notes)</p>
+                        <p className="text-[10px] text-white/60 mt-1">(Income - Expenses - Notes)</p>
                       </div>
                       <div className="text-right">
                         <span className="text-3xl font-black font-mono tracking-tight leading-none">

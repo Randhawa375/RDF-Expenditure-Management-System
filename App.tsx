@@ -276,7 +276,6 @@ const App: React.FC = () => {
                       transactions={transactions}
                       personExpenses={personExpenses}
                       monthlyNotes={monthlyNotes}
-                      persons={persons}
                       onSaveNote={handleSaveMonthlyNote}
                       onDeleteNote={handleDeleteMonthlyNote}
                       onAdd={() => openAddModal(undefined, undefined, [TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER])}
