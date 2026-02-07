@@ -62,13 +62,13 @@ const Dashboard: React.FC<DashboardProps> = ({
     const dayTrans = transactions.filter(t => t.date === selectedDate);
     const dayPersonExp = personExpenses.filter(e => e.date === selectedDate);
 
-    const mainStats = todayTrans.reduce((acc, t) => {
+    const mainStats = dayTrans.reduce((acc, t) => {
       if (t.type === TransactionType.INCOME) acc.totalIncome += t.amount;
       else if (t.type === TransactionType.EXPENSE) acc.totalExpenses += t.amount;
       return acc;
     }, { totalIncome: 0, totalExpenses: 0 });
 
-    const personTotal = todayPersonExp.reduce((sum, e) => sum + e.amount, 0);
+    const personTotal = dayPersonExp.reduce((sum, e) => sum + e.amount, 0);
 
     return {
       totalIncome: mainStats.totalIncome,
