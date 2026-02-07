@@ -69,8 +69,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     return {
       totalIncome: mainStats.totalIncome,
-      totalExpenses: mainStats.totalExpenses + personTotal,
-      mainExpenses: mainStats.totalExpenses, // General expenses only
+      totalExpenses: mainStats.totalExpenses, // Removed + personTotal to prevent double counting
+      mainExpenses: mainStats.totalExpenses,
       personExpenses: personTotal,
       transactions: todayTrans,
       personTrans: todayPersonExp
@@ -81,6 +81,9 @@ const Dashboard: React.FC<DashboardProps> = ({
     const mainStats = filteredTransactions.reduce((acc, t) => {
       if (t.type === TransactionType.INCOME) acc.totalIncome += t.amount;
       else if (t.type === TransactionType.EXPENSE) acc.totalExpenses += t.amount;
+      // If we want TRANSFER to be included in Expenses (like in Daily Ledger), we should add it here too.
+      // But for now, let's stick to user's request about double counting.
+      // If user records Transfer as Expense, it's already here.
       return acc;
     }, { totalIncome: 0, totalExpenses: 0 });
 
@@ -88,7 +91,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     return {
       totalIncome: mainStats.totalIncome,
-      totalExpenses: mainStats.totalExpenses + personTotalExpense,
+      totalExpenses: mainStats.totalExpenses, // Removed + personTotalExpense
       mainExpenses: mainStats.totalExpenses,
       personExpenses: personTotalExpense
     };
@@ -188,9 +191,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       doc.setFontSize(7);
       doc.setFont('helvetica', 'italic');
 
-      if (stats.personExpenses > 0) {
-        doc.text(`* Includes PKR ${stats.personExpenses.toLocaleString()} from Staff Expenses`, 85, 80);
-      }
+
 
       doc.setTextColor(30, 41, 59);
       doc.setFontSize(12);
@@ -202,14 +203,6 @@ const Dashboard: React.FC<DashboardProps> = ({
         ...filteredTransactions.map(t => ({
           ...t,
           displayType: t.type === TransactionType.INCOME ? 'Received' : 'Expense'
-        })),
-        ...filteredPersonExpenses.map(e => ({
-          id: e.id,
-          date: e.date,
-          amount: e.amount,
-          description: `(Staff) ${e.description}`,
-          type: TransactionType.EXPENSE,
-          displayType: 'Staff Exp'
         }))
       ].sort((a, b) => a.date.localeCompare(b.date));
 
@@ -513,7 +506,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               {activeDetailView === 'expense' && (
                 <div className="space-y-4">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 sticky top-0 bg-white py-2">General Expenses</h3>
-                  {filteredTransactions.filter(t => t.type === TransactionType.EXPENSE).length === 0 && filteredPersonExpenses.length === 0 ? (
+                  {filteredTransactions.filter(t => t.type === TransactionType.EXPENSE).length === 0 ? (
                     <p className="text-sm text-slate-400 italic text-center py-4">No expense records for this month.</p>
                   ) : (
                     <>
@@ -528,21 +521,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                             <span className="font-mono font-black text-rose-600 text-lg">- {t.amount.toLocaleString()}</span>
                           </div>
                         ))}
-                    </>
-                  )}
-
-                  {filteredPersonExpenses.length > 0 && (
-                    <>
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mt-6 mb-2 sticky top-0 bg-white py-2">Staff Expenses</h3>
-                      {filteredPersonExpenses.map(e => (
-                        <div key={e.id} className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
-                          <div>
-                            <p className="font-bold text-slate-700">{e.description}</p>
-                            <p className="text-xs text-slate-400 font-mono mt-0.5">{e.date}</p>
-                          </div>
-                          <span className="font-mono font-bold text-rose-500 text-lg">- {e.amount.toLocaleString()}</span>
-                        </div>
-                      ))}
                     </>
                   )}
                 </div>
