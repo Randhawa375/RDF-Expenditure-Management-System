@@ -287,77 +287,54 @@ const PersonLedgerPage: React.FC = () => {
                 </button>
             </div>
 
-            {/* Financial Statement Summary */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
-                <div className="bg-slate-50/50 border-b border-slate-100 px-6 py-4">
-                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">Financial Summary (مالیاتی خلاصہ)</h3>
-                </div>
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            {/* Financial Statement Summary - Simplified */}
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6 p-6">
+                <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
 
-                    {/* Breakdown List */}
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
-                            <div>
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Previous Balance</p>
-                                <p className="text-[10px] font-urdu text-slate-400">سابقہ بیلنس (شروعاتی)</p>
-                            </div>
-                            <p className={`font-mono font-bold text-lg ${(person?.previous_balance || 0) < 0 ? 'text-rose-500' : 'text-slate-700'}`}>
-                                {(person?.previous_balance || 0).toLocaleString()}
+                    {/* Main Balance Display */}
+                    <div className="flex-1 w-full md:w-auto">
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Current Balance (موجودہ بیلنس)</p>
+                        <div className="flex items-baseline gap-3">
+                            <h2 className={`text-4xl md:text-5xl font-black tracking-tight ${isNegativeBalance ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                {currentBalance.toLocaleString()}
+                            </h2>
+                            <span className="text-sm font-bold text-slate-400">PKR</span>
+                        </div>
+                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg mt-3 text-[10px] font-black uppercase tracking-widest ${isNegativeBalance ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+                            }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${isNegativeBalance ? 'bg-rose-500' : 'bg-emerald-500'}`}></div>
+                            {isNegativeBalance ? 'We Owe (Liability)' : 'Advance (Asset)'}
+                        </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full md:w-auto lg:flex-1">
+
+                        {/* Monthly Limit */}
+                        <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Monthly Limit</p>
+                            <p className="font-mono font-bold text-slate-700">{(person?.salary_limit || 0).toLocaleString()}</p>
+                        </div>
+
+                        {/* Remaining Limit */}
+                        <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Remaining</p>
+                            <p className={`font-mono font-bold ${((person?.salary_limit || 0) - stats.expenses) < 0 ? 'text-rose-600' : 'text-slate-700'}`}>
+                                {((person?.salary_limit || 0) - stats.expenses).toLocaleString()}
                             </p>
                         </div>
 
-                        <div className="flex justify-between items-center px-3">
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                <div>
-                                    <p className="text-sm font-bold text-slate-700">Total Payments (All Time)</p>
-                                    <p className="text-[10px] font-urdu text-slate-400">کل ادائیگی (دی گئی)</p>
-                                </div>
-                            </div>
-                            <p className="font-mono font-bold text-emerald-600">+ {allTimeStats.payments.toLocaleString()}</p>
+                        {/* Total Paid */}
+                        <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Paid (Given)</p>
+                            <p className="font-mono font-bold text-emerald-600">+{allTimeStats.payments.toLocaleString()}</p>
                         </div>
 
-                        <div className="flex justify-between items-center px-3 mb-2">
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-rose-500"></div>
-                                <div>
-                                    <p className="text-sm font-bold text-slate-700">Total Expenses / Received (All Time)</p>
-                                    <p className="text-[10px] font-urdu text-slate-400">کل خرچہ / وصولی</p>
-                                </div>
-                            </div>
-                            <p className="font-mono font-bold text-rose-600">- {allTimeStats.expenses.toLocaleString()}</p>
+                        {/* Total Spent */}
+                        <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Spent (Exp)</p>
+                            <p className="font-mono font-bold text-rose-600">-{allTimeStats.expenses.toLocaleString()}</p>
                         </div>
-
-                        {/* Monthly Limit Section */}
-                        {(person?.salary_limit || 0) > 0 && (
-                            <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex justify-between items-center mt-4">
-                                <div>
-                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Remaining Limit (Month)</p>
-                                    <p className="text-[10px] font-urdu text-slate-400">بقیہ ماہانہ حد</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className={`font-mono font-bold text-lg leading-none ${((person?.salary_limit || 0) - stats.expenses) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                        {((person?.salary_limit || 0) - stats.expenses).toLocaleString()}
-                                    </p>
-                                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-0.5">
-                                        Limit: {(person?.salary_limit || 0).toLocaleString()}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Net Balance Big Display */}
-                    <div className={`rounded-2xl p-6 text-center border-2 border-dashed ${isNegativeBalance ? 'bg-rose-50 border-rose-200' : 'bg-indigo-50 border-indigo-200'}`}>
-                        <p className={`text-xs font-black uppercase tracking-widest mb-2 ${isNegativeBalance ? 'text-rose-400' : 'text-indigo-400'}`}>
-                            Net Current Balance (موجودہ بیلنس)
-                        </p>
-                        <p className={`text-5xl font-black mb-2 tracking-tight ${isNegativeBalance ? 'text-rose-600' : 'text-indigo-600'}`}>
-                            {currentBalance.toLocaleString()}
-                        </p>
-                        <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isNegativeBalance ? 'bg-rose-100 text-rose-600' : 'bg-indigo-100 text-indigo-600'}`}>
-                            {isNegativeBalance ? 'Liability (We Owe)' : 'Asset (In Hand)'}
-                        </span>
                     </div>
                 </div>
             </div>

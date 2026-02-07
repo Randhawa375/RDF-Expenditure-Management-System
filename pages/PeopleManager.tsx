@@ -13,6 +13,10 @@ const PeopleManager: React.FC = () => {
     const [currentMonth] = useState(() => new Date().toISOString().slice(0, 7));
 
     // Form State
+    const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+    const [editingPerson, setEditingPerson] = useState<Person | null>(null);
+
+    // Form State
     const [name, setName] = useState('');
     const [previousBalance, setPreviousBalance] = useState('');
     const [balanceType, setBalanceType] = useState<'ADVANCE' | 'DUE'>('ADVANCE'); // ADVANCE (+), DUE (-)
@@ -136,13 +140,15 @@ const PeopleManager: React.FC = () => {
             const finalBalance = balanceType === 'ADVANCE' ? Math.abs(rawBalance) : -Math.abs(rawBalance);
 
             await db.savePerson({
-                id: crypto.randomUUID(),
+                id: editingPerson ? editingPerson.id : crypto.randomUUID(),
                 name,
                 previous_balance: finalBalance,
                 salary_limit: Number(salaryLimit) || 0
             });
             setIsModalOpen(false);
+            setIsModalOpen(false);
             resetForm();
+            setEditingPerson(null);
             fetchData();
         } catch (error) {
             alert('Error saving person: ' + (error as Error).message);
@@ -168,6 +174,17 @@ const PeopleManager: React.FC = () => {
         setPreviousBalance('');
         setSalaryLimit('');
         setBalanceType('ADVANCE');
+        setEditingPerson(null);
+    };
+
+    const handleEdit = (e: React.MouseEvent, person: Person) => {
+        e.preventDefault(); // Prevent navigation
+        setEditingPerson(person);
+        setName(person.name);
+        setPreviousBalance(Math.abs(person.previous_balance).toString());
+        setBalanceType(person.previous_balance >= 0 ? 'ADVANCE' : 'DUE');
+        setSalaryLimit(person.salary_limit.toString());
+        setIsModalOpen(true);
     };
 
     return (
@@ -192,7 +209,7 @@ const PeopleManager: React.FC = () => {
                         Report
                     </button>
                     <button
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={() => { resetForm(); setIsModalOpen(true); }}
                         className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow hover:brightness-105 active:scale-95 transition-all"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -272,15 +289,26 @@ const PeopleManager: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <button
-                                    onClick={(e) => handleDelete(e, person.id)}
-                                    className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
-                                    title="Delete Person"
-                                >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
+                                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                    <button
+                                        onClick={(e) => handleEdit(e, person)}
+                                        className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                                        title="Edit Person"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                    </button>
+                                    <button
+                                        onClick={(e) => handleDelete(e, person.id)}
+                                        className="p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                                        title="Delete Person"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </Link>
                         );
                     })}
@@ -293,11 +321,11 @@ const PeopleManager: React.FC = () => {
                     <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
                         <div className="bg-slate-900 px-6 py-5 flex justify-between items-center">
                             <div>
-                                <h2 className="text-xl font-black text-white tracking-tight">Add Person</h2>
-                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">نیا فرد شامل کریں</p>
+                                <h2 className="text-xl font-black text-white tracking-tight">{editingPerson ? 'Edit Person' : 'Add Person'}</h2>
+                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">{editingPerson ? 'معلومات تبدیل کریں' : 'نیا فرد شامل کریں'}</p>
                             </div>
                             <button
-                                onClick={() => setIsModalOpen(false)}
+                                onClick={() => { setIsModalOpen(false); resetForm(); }}
                                 className="p-2 bg-white/10 text-white hover:bg-white/20 rounded-xl transition-colors"
                             >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -340,8 +368,8 @@ const PeopleManager: React.FC = () => {
                                             type="button"
                                             onClick={() => setBalanceType('ADVANCE')}
                                             className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${balanceType === 'ADVANCE'
-                                                    ? 'bg-white shadow text-emerald-600'
-                                                    : 'text-slate-400 hover:text-slate-600'
+                                                ? 'bg-white shadow text-emerald-600'
+                                                : 'text-slate-400 hover:text-slate-600'
                                                 }`}
                                         >
                                             Advance (Advance / Asset)
@@ -350,8 +378,8 @@ const PeopleManager: React.FC = () => {
                                             type="button"
                                             onClick={() => setBalanceType('DUE')}
                                             className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${balanceType === 'DUE'
-                                                    ? 'bg-white shadow text-rose-600'
-                                                    : 'text-slate-400 hover:text-slate-600'
+                                                ? 'bg-white shadow text-rose-600'
+                                                : 'text-slate-400 hover:text-slate-600'
                                                 }`}
                                         >
                                             Payable (Denay hain / Liability)
@@ -384,7 +412,7 @@ const PeopleManager: React.FC = () => {
                                         <span>Saving...</span>
                                     </>
                                 ) : (
-                                    <span>Save Person (محفوظ کریں)</span>
+                                    <span>{editingPerson ? 'Update Person (تبدیل کریں)' : 'Save Person (محفوظ کریں)'}</span>
                                 )}
                             </button>
                         </form>
