@@ -10,6 +10,7 @@ interface DashboardProps {
   transactions: Transaction[];
   personExpenses?: PersonExpense[];
   monthlyNotes?: MonthlyNote[];
+  persons: Person[];
   onSaveNote?: (note: MonthlyNote) => Promise<void>;
   onDeleteNote?: (id: string) => Promise<void>;
   onAdd: () => void;
@@ -19,6 +20,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   transactions,
   personExpenses = [],
   monthlyNotes = [],
+  persons = [],
   onSaveNote,
   onDeleteNote,
   onAdd
@@ -107,29 +109,28 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const netBalance = stats.totalIncome - stats.totalExpenses - stats.personExpenses - stats.notesTotal;
 
-  // Group Person Expenses for Breakdown
-  const personBreakdown = useMemo(() => {
-    const breakdown: Record<string, { name: string, amount: number }> = {};
-    filteredPersonExpenses.forEach(e => {
-      if (!breakdown[e.person_id]) {
-        // We don't have the name directly here, we might need to rely on the fact that
-        // Person Expenses might need to come with names joined or we look them up?
-        // Ah, PersonExpense doesn't have the name. We need to pass persons list or assume
-        // the App.tsx could enrich it OR just use description which says "(Staff) Desc" in PDF but here?
-        // Wait, PersonExpense has `person_id`.
-        // To show names we need the Person list.
-        // Let's use a workaround: The description usually contains some info? No.
-        // We really should pass `persons` to Dashboard if we want names.
-        // But for now let's just group by ID and maybe we can't show name easily without fetching it?
-        // Actually, let's just LIST the expenses with their descriptions for now or 
-        // request App.tsx to pass persons.
-        // Wait, the user request "to whom person this payment is remaining".
-        // Use the passed PersonExpense list.
-      }
-      // Actually simpler: Just show the list of Staff Expenses in the details view.
+  // Group Person Expenses for Breakdown and Debt Tracking
+  const personNetBalances = useMemo(() => {
+    const balances: Record<string, { name: string, balance: number }> = {};
+
+    // Initialize with all persons
+    persons.forEach(p => {
+      balances[p.id] = { name: p.name, balance: 0 };
     });
-    return [];
-  }, [filteredPersonExpenses]);
+
+    // Calculate monthly net for each person
+    // (Payments they received - Expenses they paid)
+    filteredPersonExpenses.forEach(e => {
+      if (!balances[e.person_id]) return;
+      if (e.type === 'PAYMENT' || e.type === 'RECEIVED') {
+        balances[e.person_id].balance += e.amount;
+      } else if (e.type === 'EXPENSE') {
+        balances[e.person_id].balance -= e.amount;
+      }
+    });
+
+    return Object.values(balances);
+  }, [filteredPersonExpenses, persons]);
 
   const handleSaveNote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -420,40 +421,63 @@ const Dashboard: React.FC<DashboardProps> = ({
                       </button>
                     </div>
 
-                    <div className="space-y-2">
-                      {/* Person Payments */}
-                      {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').map(e => (
-                        <div key={e.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
-                          <div>
-                            <p className="font-bold text-slate-700 text-sm">{e.description}</p>
-                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-tight">Staff Payment • {e.date}</p>
+                    <div className="space-y-4">
+                      {/* People we Owe Money (Udhar) */}
+                      {personNetBalances.some(p => p.balance < 0) && (
+                        <div>
+                          <p className="text-[10px] font-black text-rose-500 uppercase tracking-wider mb-2">People we owe money (ادھار)</p>
+                          <div className="space-y-2">
+                            {personNetBalances.filter(p => p.balance < 0).map(p => (
+                              <div key={p.name} className="flex justify-between items-center bg-white p-3 rounded-lg border border-rose-100 shadow-sm">
+                                <p className="font-bold text-slate-700 text-sm">{p.name}</p>
+                                <span className="font-mono font-bold text-rose-500 text-sm">PKR {Math.abs(p.balance).toLocaleString()}</span>
+                              </div>
+                            ))}
                           </div>
-                          <span className="font-mono font-bold text-rose-500 text-sm">- {e.amount.toLocaleString()}</span>
                         </div>
-                      ))}
+                      )}
+
+                      {/* People having Cash (Cash with Staff) */}
+                      {personNetBalances.some(p => p.balance > 0) && (
+                        <div>
+                          <p className="text-[10px] font-black text-emerald-500 uppercase tracking-wider mb-2">Cash with staff (موجودہ نقدی)</p>
+                          <div className="space-y-2">
+                            {personNetBalances.filter(p => p.balance > 0).map(p => (
+                              <div key={p.name} className="flex justify-between items-center bg-white p-3 rounded-lg border border-emerald-100 shadow-sm">
+                                <p className="font-bold text-slate-700 text-sm">{p.name}</p>
+                                <span className="font-mono font-bold text-emerald-600 text-sm">PKR {p.balance.toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Manual Notes/Details */}
-                      {filteredMonthlyNotes.map(n => (
-                        <div key={n.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm group">
-                          <div>
-                            <p className="font-bold text-slate-800 text-sm">{n.title}</p>
-                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-tight">Additional Detail</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="font-mono font-bold text-rose-500 text-sm">- {n.amount.toLocaleString()}</span>
-                            <button
-                              onClick={() => handleDeleteNote(n.id)}
-                              className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
-                            >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
+                      {filteredMonthlyNotes.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Additional Details (دیگر تفصیلات)</p>
+                          <div className="space-y-2">
+                            {filteredMonthlyNotes.map(n => (
+                              <div key={n.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm group">
+                                <p className="font-bold text-slate-800 text-sm">{n.title}</p>
+                                <div className="flex items-center gap-3">
+                                  <span className="font-mono font-bold text-rose-500 text-sm">- {n.amount.toLocaleString()}</span>
+                                  <button
+                                    onClick={() => handleDeleteNote(n.id)}
+                                    className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      ))}
+                      )}
 
-                      {(filteredPersonExpenses.filter(e => e.type === 'PAYMENT').length === 0 && filteredMonthlyNotes.length === 0) && (
+                      {(personNetBalances.every(p => p.balance === 0) && filteredMonthlyNotes.length === 0) && (
                         <p className="text-sm text-slate-400 italic text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                           No additional breakdown items for this month.
                         </p>
