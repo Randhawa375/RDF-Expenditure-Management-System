@@ -22,6 +22,7 @@ const PersonLedgerPage: React.FC = () => {
     const [entryType, setEntryType] = useState<'PAYMENT' | 'EXPENSE'>('EXPENSE');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [editingEntry, setEditingEntry] = useState<PersonExpense | null>(null);
 
     useEffect(() => {
         if (id) {
@@ -165,9 +166,19 @@ const PersonLedgerPage: React.FC = () => {
 
     const openModal = (type: 'PAYMENT' | 'EXPENSE') => {
         setEntryType(type);
+        setEditingEntry(null);
         setAmount('');
         setDescription('');
         setDate(new Date().toISOString().split('T')[0]);
+        setIsModalOpen(true);
+    };
+
+    const handleEditEntry = (entry: PersonExpense) => {
+        setEditingEntry(entry);
+        setEntryType(entry.type || 'EXPENSE');
+        setAmount(entry.amount.toString());
+        setDescription(entry.description);
+        setDate(entry.date);
         setIsModalOpen(true);
     };
 
@@ -176,14 +187,24 @@ const PersonLedgerPage: React.FC = () => {
         if (!id) return;
         setIsSubmitting(true);
         try {
-            await db.savePersonExpense({
-                id: crypto.randomUUID(),
-                person_id: id,
-                date,
-                description,
-                amount: Number(amount),
-                type: entryType
-            });
+            if (editingEntry) {
+                await db.savePersonExpense({
+                    ...editingEntry,
+                    date,
+                    description,
+                    amount: Number(amount),
+                    type: entryType
+                });
+            } else {
+                await db.savePersonExpense({
+                    id: crypto.randomUUID(),
+                    person_id: id,
+                    date,
+                    description,
+                    amount: Number(amount),
+                    type: entryType
+                });
+            }
             setIsModalOpen(false);
             fetchData();
         } catch (error) {
@@ -373,9 +394,16 @@ const PersonLedgerPage: React.FC = () => {
                                                     })} • {isPayment ? 'PAYMENT' : isReceived ? 'RECEIVED' : 'EXPENSE'}
                                                 </span>
                                             </div>
-                                            <button onClick={() => handleDeleteEntry(entry.id)} className="text-slate-300 hover:text-rose-500">
-                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleEditEntry(entry)} className="text-slate-300 hover:text-indigo-500">
+                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                    </svg>
+                                                </button>
+                                                <button onClick={() => handleDeleteEntry(entry.id)} className="text-slate-300 hover:text-rose-500">
+                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </button>
+                                            </div>
                                         </div>
                                         <p className="text-sm font-medium text-slate-700">{entry.description}</p>
                                     </div>
@@ -420,6 +448,11 @@ const PersonLedgerPage: React.FC = () => {
                                                     {entry.amount.toLocaleString()}
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
+                                                    <button onClick={() => handleEditEntry(entry)} className="text-slate-400 hover:text-indigo-500 p-2">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                        </svg>
+                                                    </button>
                                                     <button onClick={() => handleDeleteEntry(entry.id)} className="text-slate-400 hover:text-rose-500 p-2">
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                     </button>
@@ -443,10 +476,10 @@ const PersonLedgerPage: React.FC = () => {
                             }`}>
                             <div>
                                 <h2 className="text-xl font-black text-white tracking-tight">
-                                    {entryType === 'PAYMENT' ? 'Add Payment' : 'Add Expense'}
+                                    {editingEntry ? 'Edit Entry' : (entryType === 'PAYMENT' ? 'Add Payment' : 'Add Expense')}
                                 </h2>
                                 <p className="text-white/80 text-xs font-bold uppercase tracking-widest mt-0.5">
-                                    {entryType === 'PAYMENT' ? 'See Payment Detail' : 'See Expense Detail'}
+                                    {editingEntry ? 'Update Transaction Details' : (entryType === 'PAYMENT' ? 'See Payment Detail' : 'See Expense Detail')}
                                 </p>
                             </div>
                             <button

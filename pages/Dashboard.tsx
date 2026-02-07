@@ -400,29 +400,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Staff Expenses Section */}
-                  <div className="mb-6">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Staff Expenses Breakdown (عملہ کے اخراجات)</h3>
-                    {filteredPersonExpenses.length === 0 ? (
-                      <p className="text-sm text-slate-400 italic">No staff expenses this month.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {filteredPersonExpenses.map(e => (
-                          <div key={e.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <div>
-                              <p className="font-bold text-slate-700 text-sm">{e.description}</p>
-                              <p className="text-[10px] text-slate-400">{e.date}</p>
-                            </div>
-                            <span className="font-mono font-bold text-rose-500 text-sm">- {e.amount.toLocaleString()}</span>
-                          </div>
-                        ))}
-                        <div className="flex justify-between items-center px-3 pt-2">
-                          <span className="text-xs font-bold text-slate-500">Total Staff Exp</span>
-                          <span className="font-mono font-bold text-rose-600 text-sm">- {stats.personExpenses.toLocaleString()}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  {/* Staff Expenses Section Removed to prevent double counting confusion */}
 
                   {/* Manual Notes Section */}
                   <div>
