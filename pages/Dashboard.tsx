@@ -90,17 +90,22 @@ const Dashboard: React.FC<DashboardProps> = ({
       return acc;
     }, { totalIncome: 0, totalExpenses: 0 });
 
-    const personTotalExpense = filteredPersonExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const personPaymentsTotal = filteredPersonExpenses
+      .filter(e => e.type === 'PAYMENT')
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    const notesTotal = filteredMonthlyNotes.reduce((sum, n) => sum + n.amount, 0);
 
     return {
       totalIncome: mainStats.totalIncome,
-      totalExpenses: mainStats.totalExpenses, // Removed + personTotalExpense
+      totalExpenses: mainStats.totalExpenses,
       mainExpenses: mainStats.totalExpenses,
-      personExpenses: personTotalExpense
+      personExpenses: personPaymentsTotal,
+      notesTotal: notesTotal
     };
-  }, [filteredTransactions, filteredPersonExpenses]);
+  }, [filteredTransactions, filteredPersonExpenses, filteredMonthlyNotes]);
 
-  const profit = stats.totalIncome - stats.totalExpenses;
+  const netBalance = stats.totalIncome - stats.totalExpenses - stats.personExpenses - stats.notesTotal;
 
   // Group Person Expenses for Breakdown
   const personBreakdown = useMemo(() => {
@@ -185,9 +190,9 @@ const Dashboard: React.FC<DashboardProps> = ({
       doc.setTextColor(225, 29, 72);
       doc.text(`PKR ${stats.totalExpenses.toLocaleString()}`, 85, 73);
 
-      if (profit >= 0) doc.setTextColor(79, 70, 229);
+      if (netBalance >= 0) doc.setTextColor(79, 70, 229);
       else doc.setTextColor(225, 29, 72);
-      doc.text(`PKR ${profit.toLocaleString()}`, 140, 73);
+      doc.text(`PKR ${netBalance.toLocaleString()}`, 140, 73);
 
       // Note about person expenses inclusion
       doc.setTextColor(100, 116, 139);
@@ -336,18 +341,18 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         {/* Net Balance Card */}
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-transform hover:scale-[1.01] flex flex-col items-center text-center">
-          <div className={`p-4 rounded-2xl mb-5 ${profit >= 0 ? 'bg-indigo-50 text-indigo-500' : 'bg-rose-50 text-rose-500'}`}>
+          <div className={`p-4 rounded-2xl mb-5 ${netBalance >= 0 ? 'bg-indigo-50 text-indigo-500' : 'bg-rose-50 text-rose-500'}`}>
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
           </div>
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Net Balance</span>
-          <div className={`text-3xl font-black mb-1 leading-none ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>PKR {profit.toLocaleString()}</div>
-          <div className={`font-urdu text-xl font-bold ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>بیلنس</div>
+          <div className={`text-3xl font-black mb-1 leading-none ${netBalance >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>PKR {netBalance.toLocaleString()}</div>
+          <div className={`font-urdu text-xl font-bold ${netBalance >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>بیلنس</div>
 
           <button
             onClick={() => setActiveDetailView('balance')}
             className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 border-b border-transparent hover:border-indigo-600 transition-all"
           >
-            View Breakdown / Add Note
+            View Breakdown / Add Details
           </button>
         </div>
       </div>
@@ -385,7 +390,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="p-6 overflow-y-auto">
               {activeDetailView === 'balance' && (
                 <>
-                  {/* Calculation Summary */}
+                  {/* Monthly General Summary */}
                   <div className="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100">
                     <div className="flex justify-between items-center text-sm mb-2">
                       <span className="font-bold text-slate-600">Total Income (آمدنی)</span>
@@ -396,254 +401,230 @@ const Dashboard: React.FC<DashboardProps> = ({
                       <span className="font-mono font-bold text-rose-600">- {stats.totalExpenses.toLocaleString()}</span>
                     </div>
                     <div className="border-t border-slate-200 mt-2 pt-2 flex justify-between items-center">
-                      <span className="font-black text-slate-800">Net Balance (بیلنس)</span>
-                      <span className={`font-mono font-black ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
-                        {profit.toLocaleString()}
+                      <span className="font-black text-slate-800 text-base">Initial Balance</span>
+                      <span className="font-mono font-black text-slate-800 text-base">
+                        {(stats.totalIncome - stats.totalExpenses).toLocaleString()}
                       </span>
                     </div>
                   </div>
 
-                  {/* Payments Given Section */}
+                  {/* Net Balance Breakdown Items */}
                   <div className="mb-6">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Payments Given (دی گئی ادائیگیاں)</h3>
-                    {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').length === 0 ? (
-                      <p className="text-sm text-slate-400 italic">No payments given this month.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').map(e => (
-                          <div key={e.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <div>
-                              <p className="font-bold text-slate-700 text-sm">{e.description}</p>
-                              <p className="text-[10px] text-slate-400">{e.date}</p>
-                            </div>
-                            <span className="font-mono font-bold text-amber-600 text-sm">- {e.amount.toLocaleString()}</span>
-                          </div>
-                        ))}
-                        <div className="flex justify-between items-center px-3 pt-2 border-t border-slate-100 mt-2">
-                          <span className="text-xs font-bold text-slate-500">Total Payments</span>
-                          <span className="font-mono font-bold text-amber-600 text-sm">
-                            - {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Final Cash Position */}
-                  <div className="bg-indigo-900 p-5 rounded-2xl mb-6 text-white shadow-xl shadow-indigo-200">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Final Cash Position</span>
-                    </div>
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <p className="font-urdu text-lg opacity-80">موجودہ نقدی</p>
-                        <p className="text-[10px] text-indigo-300 opacity-60">(Net Balance - Payments)</p>
-                      </div>
-                      <span className="text-3xl font-black font-mono tracking-tight">
-                        {(profit - filteredPersonExpenses.filter(e => e.type === 'PAYMENT').reduce((sum, e) => sum + e.amount, 0)).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Staff Expenses Section Removed to prevent double counting confusion */}
-
-                  {/* Manual Notes Section */}
-                  <div>
                     <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Additional Notes / Payables (دیگر واجبات / نوٹس)</h3>
+                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Balance Breakdown / Details (بیلنس کی تفصیل)</h3>
                       <button
                         onClick={() => setIsNoteModalOpen(true)}
                         className="text-[10px] font-black bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
                       >
-                        + Add Note
+                        + Add Detail Item
                       </button>
                     </div>
 
-                    {filteredMonthlyNotes.length === 0 ? (
-                      <p className="text-sm text-slate-400 italic">No notes added.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {filteredMonthlyNotes.map(n => (
-                          <div key={n.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm group">
-                            <div>
-                              <p className="font-bold text-slate-800 text-sm">{n.title}</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="font-mono font-bold text-slate-700 text-sm">{n.amount.toLocaleString()}</span>
-                              <button
-                                onClick={() => handleDeleteNote(n.id)}
-                                className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
-                              >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
+                    <div className="space-y-2">
+                      {/* Person Payments */}
+                      {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').map(e => (
+                        <div key={e.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                          <div>
+                            <p className="font-bold text-slate-700 text-sm">{e.description}</p>
+                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-tight">Staff Payment • {e.date}</p>
                           </div>
-                        ))}
-                        <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 mt-2">
-                          <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wide mb-1">Impact Analysis</p>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-orange-800 font-medium">Net Balance</span>
-                            <span className="font-mono font-bold text-slate-700">{profit.toLocaleString()}</span>
+                          <span className="font-mono font-bold text-rose-500 text-sm">- {e.amount.toLocaleString()}</span>
+                        </div>
+                      ))}
+
+                      {/* Manual Notes/Details */}
+                      {filteredMonthlyNotes.map(n => (
+                        <div key={n.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm group">
+                          <div>
+                            <p className="font-bold text-slate-800 text-sm">{n.title}</p>
+                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-tight">Additional Detail</p>
                           </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-orange-800 font-medium">Minus Notes Total</span>
-                            <span className="font-mono font-bold text-rose-600">
-                              - {filteredMonthlyNotes.reduce((sum, n) => sum + n.amount, 0).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="border-t border-orange-200/50 mt-1 pt-1 flex justify-between items-center text-sm">
-                            <span className="text-orange-900 font-bold">Remaining</span>
-                            <span className="font-mono font-bold text-orange-900">
-                              {(profit - filteredMonthlyNotes.reduce((sum, n) => sum + n.amount, 0)).toLocaleString()}
-                            </span>
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono font-bold text-rose-500 text-sm">- {n.amount.toLocaleString()}</span>
+                            <button
+                              onClick={() => handleDeleteNote(n.id)}
+                              className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
                           </div>
                         </div>
+                      ))}
+
+                      {(filteredPersonExpenses.filter(e => e.type === 'PAYMENT').length === 0 && filteredMonthlyNotes.length === 0) && (
+                        <p className="text-sm text-slate-400 italic text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                          No additional breakdown items for this month.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Final Calculation Section */}
+                  <div className={`p-6 rounded-2xl shadow-xl ${netBalance >= 0 ? 'bg-indigo-600' : 'bg-rose-600'} text-white`}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white/70">Final Net Balance</span>
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="font-urdu text-2xl font-black">کل بیلنس</p>
+                        <p className="text-[10px] text-white/60 mt-1">(Income - Expenses - Staff/Notes)</p>
                       </div>
-                    )}
+                      <div className="text-right">
+                        <span className="text-3xl font-black font-mono tracking-tight leading-none">
+                          {netBalance.toLocaleString()}
+                        </span>
+                        <p className="text-[10px] font-bold mt-1 uppercase tracking-tighter text-white/40">PKR Total</p>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
+            </>
+              )}
 
-              {activeDetailView === 'income' && (
-                <div className="space-y-4">
-                  {selectedDateStats.transactions.filter(t => t.type === TransactionType.INCOME).length === 0 ? (
-                    <p className="text-sm text-slate-400 italic text-center py-4">No income records for this date ({selectedDate}).</p>
-                  ) : (
-                    selectedDateStats.transactions.filter(t => t.type === TransactionType.INCOME)
-                      .sort((a, b) => b.date.localeCompare(a.date)) // newest first
+            {activeDetailView === 'income' && (
+              <div className="space-y-4">
+                {selectedDateStats.transactions.filter(t => t.type === TransactionType.INCOME).length === 0 ? (
+                  <p className="text-sm text-slate-400 italic text-center py-4">No income records for this date ({selectedDate}).</p>
+                ) : (
+                  selectedDateStats.transactions.filter(t => t.type === TransactionType.INCOME)
+                    .sort((a, b) => b.date.localeCompare(a.date)) // newest first
+                    .map(t => (
+                      <div key={t.id} className="flex justify-between items-center bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                        <div>
+                          <p className="font-bold text-slate-800">{t.description}</p>
+                          <p className="text-xs text-slate-400 font-mono mt-0.5">{t.date}</p>
+                        </div>
+                        <span className="font-mono font-black text-emerald-600 text-lg">+ {t.amount.toLocaleString()}</span>
+                      </div>
+                    ))
+                )}
+              </div>
+            )}
+
+            {activeDetailView === 'expense' && (
+              <div className="space-y-4">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 sticky top-0 bg-white py-2">General Expenses ({selectedDate})</h3>
+                {selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE).length === 0 ? (
+                  <p className="text-sm text-slate-400 italic text-center py-4">No expense records for this date ({selectedDate}).</p>
+                ) : (
+                  <>
+                    {selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE)
+                      .sort((a, b) => b.date.localeCompare(a.date))
                       .map(t => (
-                        <div key={t.id} className="flex justify-between items-center bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                        <div key={t.id} className="flex justify-between items-center bg-rose-50 p-4 rounded-xl border border-rose-100">
                           <div>
                             <p className="font-bold text-slate-800">{t.description}</p>
                             <p className="text-xs text-slate-400 font-mono mt-0.5">{t.date}</p>
                           </div>
-                          <span className="font-mono font-black text-emerald-600 text-lg">+ {t.amount.toLocaleString()}</span>
+                          <span className="font-mono font-black text-rose-600 text-lg">- {t.amount.toLocaleString()}</span>
                         </div>
-                      ))
-                  )}
-                </div>
-              )}
+                      ))}
+                  </>
+                )}
+              </div>
+            )}
 
-              {activeDetailView === 'expense' && (
-                <div className="space-y-4">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 sticky top-0 bg-white py-2">General Expenses ({selectedDate})</h3>
-                  {selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE).length === 0 ? (
-                    <p className="text-sm text-slate-400 italic text-center py-4">No expense records for this date ({selectedDate}).</p>
-                  ) : (
-                    <>
-                      {selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE)
-                        .sort((a, b) => b.date.localeCompare(a.date))
-                        .map(t => (
-                          <div key={t.id} className="flex justify-between items-center bg-rose-50 p-4 rounded-xl border border-rose-100">
-                            <div>
-                              <p className="font-bold text-slate-800">{t.description}</p>
-                              <p className="text-xs text-slate-400 font-mono mt-0.5">{t.date}</p>
-                            </div>
-                            <span className="font-mono font-black text-rose-600 text-lg">- {t.amount.toLocaleString()}</span>
-                          </div>
-                        ))}
-                    </>
-                  )}
-                </div>
-              )}
-
-            </div>
           </div>
         </div>
-      )}
-
-      {/* Add Note Modal */}
-      {isNoteModalOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[1px]">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl p-5 animate-in zoom-in-95 duration-200">
-            <h3 className="font-black text-slate-900 text-lg mb-4">Add Balance Note</h3>
-            <form onSubmit={handleSaveNote} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Title / Description</label>
-                <input
-                  type="text"
-                  value={noteTitle}
-                  onChange={(e) => setNoteTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="e.g. Pending Payment to X"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Amount</label>
-                <input
-                  type="number"
-                  value={noteAmount}
-                  onChange={(e) => setNoteAmount(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="0"
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsNoteModalOpen(false)}
-                  className="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingNote}
-                  className="px-4 py-2 text-sm font-black text-white bg-slate-900 hover:bg-slate-800 rounded-lg"
-                >
-                  {isSubmittingNote ? 'Saving...' : 'Add Note'}
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
-      )}
+  )
+}
 
-      {/* Large Navigation Buttons - 1 column on mobile, 3 on desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <button
-          onClick={() => navigate('/receipts')}
-          className="bg-white hover:bg-emerald-50 text-slate-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all flex flex-col md:flex-row gap-6 items-center group"
-        >
-          <div className="bg-emerald-500 text-white p-5 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-emerald-200">
-            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+{/* Add Note Modal */ }
+{
+  isNoteModalOpen && (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[1px]">
+      <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl p-5 animate-in zoom-in-95 duration-200">
+        <h3 className="font-black text-slate-900 text-lg mb-4">Add Balance Note</h3>
+        <form onSubmit={handleSaveNote} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Title / Description</label>
+            <input
+              type="text"
+              value={noteTitle}
+              onChange={(e) => setNoteTitle(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="e.g. Pending Payment to X"
+              required
+            />
           </div>
-          <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-2">Received Ledger</span>
-            <span className="text-2xl md:text-3xl font-urdu font-black text-emerald-600 leading-tight">وصولیوں کا کھاتہ</span>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Amount</label>
+            <input
+              type="number"
+              value={noteAmount}
+              onChange={(e) => setNoteAmount(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="0"
+              required
+            />
           </div>
-        </button>
-
-        <button
-          onClick={() => navigate('/expenses')}
-          className="bg-white hover:bg-rose-50 text-slate-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all flex flex-col md:flex-row gap-6 items-center group"
-        >
-          <div className="bg-rose-500 text-white p-5 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-rose-200">
-            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <div className="flex justify-end gap-2 mt-2">
+            <button
+              type="button"
+              onClick={() => setIsNoteModalOpen(false)}
+              className="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmittingNote}
+              className="px-4 py-2 text-sm font-black text-white bg-slate-900 hover:bg-slate-800 rounded-lg"
+            >
+              {isSubmittingNote ? 'Saving...' : 'Add Note'}
+            </button>
           </div>
-          <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-2">Expense Dashboard</span>
-            <span className="text-2xl md:text-3xl font-urdu font-black text-rose-600 leading-tight">خرچے کا کھاتہ</span>
-          </div>
-        </button>
-
-        <button
-          onClick={() => navigate('/people')}
-          className="bg-white hover:bg-indigo-50 text-slate-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all flex flex-col md:flex-row gap-6 items-center group"
-        >
-          <div className="bg-indigo-600 text-white p-5 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-indigo-200">
-            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-          </div>
-          <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-2">Person Dashboard</span>
-            <span className="text-2xl md:text-3xl font-urdu font-black text-indigo-600 leading-tight">افراد کا کھاتہ</span>
-          </div>
-        </button>
+        </form>
       </div>
+    </div>
+  )
+}
+
+{/* Large Navigation Buttons - 1 column on mobile, 3 on desktop */ }
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <button
+    onClick={() => navigate('/receipts')}
+    className="bg-white hover:bg-emerald-50 text-slate-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all flex flex-col md:flex-row gap-6 items-center group"
+  >
+    <div className="bg-emerald-500 text-white p-5 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-emerald-200">
+      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+    </div>
+    <div className="flex flex-col items-center md:items-start text-center md:text-left">
+      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-2">Received Ledger</span>
+      <span className="text-2xl md:text-3xl font-urdu font-black text-emerald-600 leading-tight">وصولیوں کا کھاتہ</span>
+    </div>
+  </button>
+
+  <button
+    onClick={() => navigate('/expenses')}
+    className="bg-white hover:bg-rose-50 text-slate-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all flex flex-col md:flex-row gap-6 items-center group"
+  >
+    <div className="bg-rose-500 text-white p-5 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-rose-200">
+      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+    </div>
+    <div className="flex flex-col items-center md:items-start text-center md:text-left">
+      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-2">Expense Dashboard</span>
+      <span className="text-2xl md:text-3xl font-urdu font-black text-rose-600 leading-tight">خرچے کا کھاتہ</span>
+    </div>
+  </button>
+
+  <button
+    onClick={() => navigate('/people')}
+    className="bg-white hover:bg-indigo-50 text-slate-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all flex flex-col md:flex-row gap-6 items-center group"
+  >
+    <div className="bg-indigo-600 text-white p-5 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-indigo-200">
+      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+    </div>
+    <div className="flex flex-col items-center md:items-start text-center md:text-left">
+      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-2">Person Dashboard</span>
+      <span className="text-2xl md:text-3xl font-urdu font-black text-indigo-600 leading-tight">افراد کا کھاتہ</span>
+    </div>
+  </button>
+</div>
     </div >
   );
 };
