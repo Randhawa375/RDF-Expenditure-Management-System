@@ -30,13 +30,16 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [noteAmount, setNoteAmount] = useState('');
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
 
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Asia/Karachi',
       year: 'numeric',
-      month: '2-digit'
-    }).format(new Date()).slice(0, 7);
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
   });
+
+  const selectedMonth = useMemo(() => selectedDate.slice(0, 7), [selectedDate]);
 
 
 
@@ -55,9 +58,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Today's Date helpers
   const todayDate = useMemo(() => new Date().toISOString().split('T')[0], []);
 
-  const todayStats = useMemo(() => {
-    const todayTrans = transactions.filter(t => t.date === todayDate);
-    const todayPersonExp = personExpenses.filter(e => e.date === todayDate);
+  const selectedDateStats = useMemo(() => {
+    const dayTrans = transactions.filter(t => t.date === selectedDate);
+    const dayPersonExp = personExpenses.filter(e => e.date === selectedDate);
 
     const mainStats = todayTrans.reduce((acc, t) => {
       if (t.type === TransactionType.INCOME) acc.totalIncome += t.amount;
@@ -69,13 +72,13 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     return {
       totalIncome: mainStats.totalIncome,
-      totalExpenses: mainStats.totalExpenses, // Removed + personTotal to prevent double counting
+      totalExpenses: mainStats.totalExpenses,
       mainExpenses: mainStats.totalExpenses,
       personExpenses: personTotal,
-      transactions: todayTrans,
-      personTrans: todayPersonExp
+      transactions: dayTrans,
+      personTrans: dayPersonExp
     };
-  }, [transactions, personExpenses, todayDate]);
+  }, [transactions, personExpenses, selectedDate]);
 
   const stats = useMemo(() => {
     const mainStats = filteredTransactions.reduce((acc, t) => {
@@ -277,12 +280,12 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         <div className="flex flex-col items-center gap-4 w-full">
           {/* Month Picker Styled like a button */}
-          <div className="bg-white border border-slate-100 p-2 rounded-2xl flex items-center shadow-sm w-full max-w-xs">
-            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest px-4 border-r border-slate-100 mr-2">Month</span>
+          <div className="bg-white border border-slate-100 p-2 rounded-2xl flex items-center shadow-sm w-full max-w-xs transition-all hover:border-indigo-200">
+            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest px-4 border-r border-slate-100 mr-2">Date</span>
             <input
-              type="month"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
               className="bg-transparent border-none px-4 py-2 rounded-xl text-sm font-bold text-slate-700 focus:ring-0 cursor-pointer w-full text-center"
             />
           </div>
@@ -505,10 +508,10 @@ const Dashboard: React.FC<DashboardProps> = ({
 
               {activeDetailView === 'income' && (
                 <div className="space-y-4">
-                  {todayStats.transactions.filter(t => t.type === TransactionType.INCOME).length === 0 ? (
-                    <p className="text-sm text-slate-400 italic text-center py-4">No income records for today.</p>
+                  {selectedDateStats.transactions.filter(t => t.type === TransactionType.INCOME).length === 0 ? (
+                    <p className="text-sm text-slate-400 italic text-center py-4">No income records for this date ({selectedDate}).</p>
                   ) : (
-                    todayStats.transactions.filter(t => t.type === TransactionType.INCOME)
+                    selectedDateStats.transactions.filter(t => t.type === TransactionType.INCOME)
                       .sort((a, b) => b.date.localeCompare(a.date)) // newest first
                       .map(t => (
                         <div key={t.id} className="flex justify-between items-center bg-emerald-50 p-4 rounded-xl border border-emerald-100">
@@ -525,12 +528,12 @@ const Dashboard: React.FC<DashboardProps> = ({
 
               {activeDetailView === 'expense' && (
                 <div className="space-y-4">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 sticky top-0 bg-white py-2">General Expenses (Today)</h3>
-                  {todayStats.transactions.filter(t => t.type === TransactionType.EXPENSE).length === 0 ? (
-                    <p className="text-sm text-slate-400 italic text-center py-4">No expense records for today.</p>
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 sticky top-0 bg-white py-2">General Expenses ({selectedDate})</h3>
+                  {selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE).length === 0 ? (
+                    <p className="text-sm text-slate-400 italic text-center py-4">No expense records for this date ({selectedDate}).</p>
                   ) : (
                     <>
-                      {todayStats.transactions.filter(t => t.type === TransactionType.EXPENSE)
+                      {selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE)
                         .sort((a, b) => b.date.localeCompare(a.date))
                         .map(t => (
                           <div key={t.id} className="flex justify-between items-center bg-rose-50 p-4 rounded-xl border border-rose-100">
