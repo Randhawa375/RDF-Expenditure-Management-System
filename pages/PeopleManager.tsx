@@ -277,8 +277,14 @@ const PeopleManager: React.FC = () => {
                                                 </span>
                                             </p>
                                             <p className="flex items-center gap-2 text-rose-600">
-                                                <span className="w-20 text-[10px] uppercase tracking-wider font-black opacity-70">Exp (خرچہ):</span>
+                                                <span className="w-20 text-[10px] uppercase tracking-wider font-black opacity-70">Used (استعمال):</span>
                                                 <span className="font-mono font-bold">{personExpenses.toLocaleString()}</span>
+                                            </p>
+                                            <p className="flex items-center gap-2">
+                                                <span className="w-20 text-[10px] uppercase tracking-wider font-black opacity-70">Rem (بقیہ حد):</span>
+                                                <span className={`font-mono font-bold ${(person.salary_limit - personExpenses) < 0 ? 'text-rose-600' : 'text-slate-700'}`}>
+                                                    {(person.salary_limit - personExpenses).toLocaleString()}
+                                                </span>
                                             </p>
                                         </div>
                                     </div>
