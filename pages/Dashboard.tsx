@@ -383,19 +383,61 @@ const Dashboard: React.FC<DashboardProps> = ({
               {activeDetailView === 'balance' && (
                 <>
                   {/* Calculation Summary */}
-                  <div className="bg-indigo-50 p-4 rounded-xl mb-6">
+                  <div className="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100">
                     <div className="flex justify-between items-center text-sm mb-2">
-                      <span className="font-bold text-slate-600">Total Income</span>
+                      <span className="font-bold text-slate-600">Total Income (آمدنی)</span>
                       <span className="font-mono font-bold text-emerald-600">+ {stats.totalIncome.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm mb-2">
-                      <span className="font-bold text-slate-600">Total Expense</span>
+                      <span className="font-bold text-slate-600">Total Expense (اخراجات)</span>
                       <span className="font-mono font-bold text-rose-600">- {stats.totalExpenses.toLocaleString()}</span>
                     </div>
-                    <div className="border-t border-indigo-200 mt-2 pt-2 flex justify-between items-center">
-                      <span className="font-black text-slate-800">Net Balance</span>
+                    <div className="border-t border-slate-200 mt-2 pt-2 flex justify-between items-center">
+                      <span className="font-black text-slate-800">Net Balance (بیلنس)</span>
                       <span className={`font-mono font-black ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
                         {profit.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Payments Given Section */}
+                  <div className="mb-6">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Payments Given (دی گئی ادائیگیاں)</h3>
+                    {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').length === 0 ? (
+                      <p className="text-sm text-slate-400 italic">No payments given this month.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').map(e => (
+                          <div key={e.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <div>
+                              <p className="font-bold text-slate-700 text-sm">{e.description}</p>
+                              <p className="text-[10px] text-slate-400">{e.date}</p>
+                            </div>
+                            <span className="font-mono font-bold text-amber-600 text-sm">- {e.amount.toLocaleString()}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between items-center px-3 pt-2 border-t border-slate-100 mt-2">
+                          <span className="text-xs font-bold text-slate-500">Total Payments</span>
+                          <span className="font-mono font-bold text-amber-600 text-sm">
+                            - {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Final Cash Position */}
+                  <div className="bg-indigo-900 p-5 rounded-2xl mb-6 text-white shadow-xl shadow-indigo-200">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Final Cash Position</span>
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="font-urdu text-lg opacity-80">موجودہ نقدی</p>
+                        <p className="text-[10px] text-indigo-300 opacity-60">(Net Balance - Payments)</p>
+                      </div>
+                      <span className="text-3xl font-black font-mono tracking-tight">
+                        {(profit - filteredPersonExpenses.filter(e => e.type === 'PAYMENT').reduce((sum, e) => sum + e.amount, 0)).toLocaleString()}
                       </span>
                     </div>
                   </div>
