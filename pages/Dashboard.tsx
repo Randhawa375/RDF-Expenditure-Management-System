@@ -96,16 +96,18 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     const notesTotal = filteredMonthlyNotes.reduce((sum, n) => sum + n.amount, 0);
 
+    const totalOutflow = mainStats.totalExpenses + personPaymentsTotal + notesTotal;
+
     return {
       totalIncome: mainStats.totalIncome,
-      totalExpenses: mainStats.totalExpenses,
+      totalExpenses: totalOutflow, // Use unified outflow for the card
       mainExpenses: mainStats.totalExpenses,
       personExpenses: personPaymentsTotal,
       notesTotal: notesTotal
     };
   }, [filteredTransactions, filteredPersonExpenses, filteredMonthlyNotes]);
 
-  const netBalance = stats.totalIncome - stats.totalExpenses - stats.notesTotal;
+  const netBalance = stats.totalIncome - stats.totalExpenses;
 
   const handleSaveNote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -370,16 +372,24 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <div className="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100">
                     <div className="flex justify-between items-center text-sm mb-2">
                       <span className="font-bold text-slate-600">Total Income (آمدنی)</span>
-                      <span className="font-mono font-bold text-emerald-600">+ {stats.totalIncome.toLocaleString()}</span>
+                      <span className="font-mono font-bold text-emerald-600 text-base">+ {stats.totalIncome.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm mb-2">
-                      <span className="font-bold text-slate-600">Total Expense (اخراجات)</span>
-                      <span className="font-mono font-bold text-rose-600">- {stats.totalExpenses.toLocaleString()}</span>
+                    <div className="flex justify-between items-center text-[11px] mb-1.5 opacity-80">
+                      <span className="font-medium text-slate-500">General Expenses (عام اخراجات)</span>
+                      <span className="font-mono font-bold text-rose-400">- {stats.mainExpenses.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] mb-1.5 opacity-80">
+                      <span className="font-medium text-slate-500">Staff Payments (سٹاف کی ادائیگی)</span>
+                      <span className="font-mono font-bold text-rose-400">- {stats.personExpenses.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] mb-1.5 opacity-80">
+                      <span className="font-medium text-slate-500">Manual Notes (دیگر تفصیلات)</span>
+                      <span className="font-mono font-bold text-rose-400">- {stats.notesTotal.toLocaleString()}</span>
                     </div>
                     <div className="border-t border-slate-200 mt-2 pt-2 flex justify-between items-center">
-                      <span className="font-black text-slate-800 text-base">Initial Balance</span>
-                      <span className="font-mono font-black text-slate-800 text-base">
-                        {(stats.totalIncome - stats.totalExpenses).toLocaleString()}
+                      <span className="font-black text-slate-800 text-base">Final Net Balance</span>
+                      <span className="font-mono font-black text-slate-900 text-base">
+                        {netBalance.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -466,25 +476,71 @@ const Dashboard: React.FC<DashboardProps> = ({
               )}
 
               {activeDetailView === 'expense' && (
-                <div className="space-y-4">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 sticky top-0 bg-white py-2">General Expenses ({selectedDate})</h3>
-                  {selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE).length === 0 ? (
-                    <p className="text-sm text-slate-400 italic text-center py-4">No expense records for this date ({selectedDate}).</p>
-                  ) : (
-                    <>
-                      {selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE)
+                <div className="space-y-6">
+                  {/* General Expenses Section */}
+                  <div className="space-y-3">
+                    <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                      General Expenses (عام اخراجات)
+                    </h3>
+                    {selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE).length === 0 ? (
+                      <p className="text-xs text-slate-400 italic py-2">No general expense records</p>
+                    ) : (
+                      selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE)
                         .sort((a, b) => b.date.localeCompare(a.date))
                         .map(t => (
-                          <div key={t.id} className="flex justify-between items-center bg-rose-50 p-4 rounded-xl border border-rose-100">
+                          <div key={t.id} className="flex justify-between items-center bg-rose-50/50 p-3 rounded-xl border border-rose-100/50">
                             <div>
-                              <p className="font-bold text-slate-800">{t.description}</p>
-                              <p className="text-xs text-slate-400 font-mono mt-0.5">{t.date}</p>
+                              <p className="font-bold text-slate-800 text-sm">{t.description}</p>
+                              <p className="text-[10px] text-slate-400 font-mono mt-0.5">{t.date}</p>
                             </div>
-                            <span className="font-mono font-black text-rose-600 text-lg">- {t.amount.toLocaleString()}</span>
+                            <span className="font-mono font-black text-rose-600 text-base">- {t.amount.toLocaleString()}</span>
                           </div>
-                        ))}
-                    </>
-                  )}
+                        ))
+                    )}
+                  </div>
+
+                  {/* Staff Payments Section */}
+                  <div className="space-y-3">
+                    <h3 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                      Staff Payments (سٹاف کی ادائیگی)
+                    </h3>
+                    {filteredPersonExpenses.filter(e => e.date === selectedDate && (e.type === 'PAYMENT' || e.type === 'RECEIVED')).length === 0 ? (
+                      <p className="text-xs text-slate-400 italic py-2">No staff payments for this date</p>
+                    ) : (
+                      filteredPersonExpenses.filter(e => e.date === selectedDate && (e.type === 'PAYMENT' || e.type === 'RECEIVED'))
+                        .map(e => (
+                          <div key={e.id} className="flex justify-between items-center bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50">
+                            <div>
+                              <p className="font-bold text-slate-800 text-sm">{e.description}</p>
+                              <p className="text-[10px] text-slate-400 font-mono mt-0.5">{e.date}</p>
+                            </div>
+                            <span className="font-mono font-black text-indigo-600 text-base">- {e.amount.toLocaleString()}</span>
+                          </div>
+                        ))
+                    )}
+                  </div>
+
+                  {/* Manual Notes Section */}
+                  <div className="space-y-3">
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                      Manual Notes (دیگر اخراجات)
+                    </h3>
+                    {filteredMonthlyNotes.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic py-2">No manual notes for this month</p>
+                    ) : (
+                      filteredMonthlyNotes.map(n => (
+                        <div key={n.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200/50">
+                          <div>
+                            <p className="font-bold text-slate-800 text-sm">{n.title}</p>
+                          </div>
+                          <span className="font-mono font-black text-rose-500 text-base">- {n.amount.toLocaleString()}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
             </div>
