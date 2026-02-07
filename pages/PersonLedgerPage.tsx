@@ -319,8 +319,8 @@ const PersonLedgerPage: React.FC = () => {
                         {/* Remaining Limit */}
                         <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Remaining</p>
-                            <p className={`font-mono font-bold ${((person?.salary_limit || 0) - stats.expenses) < 0 ? 'text-rose-600' : 'text-slate-700'}`}>
-                                {((person?.salary_limit || 0) - stats.expenses).toLocaleString()}
+                            <p className={`font-mono font-bold ${((person?.salary_limit || 0) - (stats.expenses + stats.payments)) < 0 ? 'text-rose-600' : 'text-slate-700'}`}>
+                                {((person?.salary_limit || 0) - (stats.expenses + stats.payments)).toLocaleString()}
                             </p>
                         </div>
 
