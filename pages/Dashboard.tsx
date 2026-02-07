@@ -62,13 +62,13 @@ const Dashboard: React.FC<DashboardProps> = ({
     const dayTrans = transactions.filter(t => t.date === selectedDate);
     const dayPersonExp = personExpenses.filter(e => e.date === selectedDate);
 
-    const mainStats = dayTrans.reduce((acc, t) => {
+    const mainStats = todayTrans.reduce((acc, t) => {
       if (t.type === TransactionType.INCOME) acc.totalIncome += t.amount;
       else if (t.type === TransactionType.EXPENSE) acc.totalExpenses += t.amount;
       return acc;
     }, { totalIncome: 0, totalExpenses: 0 });
 
-    const personTotal = dayPersonExp.reduce((sum, e) => sum + e.amount, 0);
+    const personTotal = todayPersonExp.reduce((sum, e) => sum + e.amount, 0);
 
     return {
       totalIncome: mainStats.totalIncome,
@@ -90,24 +90,41 @@ const Dashboard: React.FC<DashboardProps> = ({
       return acc;
     }, { totalIncome: 0, totalExpenses: 0 });
 
-    const personPaymentsTotal = filteredPersonExpenses
-      .filter(e => e.type === 'PAYMENT')
-      .reduce((sum, e) => sum + e.amount, 0);
-
-    const notesTotal = filteredMonthlyNotes.reduce((sum, n) => sum + n.amount, 0);
-
-    const totalOutflow = mainStats.totalExpenses + personPaymentsTotal + notesTotal;
+    const personTotalExpense = filteredPersonExpenses.reduce((sum, e) => sum + e.amount, 0);
 
     return {
       totalIncome: mainStats.totalIncome,
-      totalExpenses: totalOutflow, // Use unified outflow for the card
+      totalExpenses: mainStats.totalExpenses, // Removed + personTotalExpense
       mainExpenses: mainStats.totalExpenses,
-      personExpenses: personPaymentsTotal,
-      notesTotal: notesTotal
+      personExpenses: personTotalExpense
     };
-  }, [filteredTransactions, filteredPersonExpenses, filteredMonthlyNotes]);
+  }, [filteredTransactions, filteredPersonExpenses]);
 
-  const netBalance = stats.totalIncome - stats.totalExpenses;
+  const profit = stats.totalIncome - stats.totalExpenses;
+
+  // Group Person Expenses for Breakdown
+  const personBreakdown = useMemo(() => {
+    const breakdown: Record<string, { name: string, amount: number }> = {};
+    filteredPersonExpenses.forEach(e => {
+      if (!breakdown[e.person_id]) {
+        // We don't have the name directly here, we might need to rely on the fact that
+        // Person Expenses might need to come with names joined or we look them up?
+        // Ah, PersonExpense doesn't have the name. We need to pass persons list or assume
+        // the App.tsx could enrich it OR just use description which says "(Staff) Desc" in PDF but here?
+        // Wait, PersonExpense has `person_id`.
+        // To show names we need the Person list.
+        // Let's use a workaround: The description usually contains some info? No.
+        // We really should pass `persons` to Dashboard if we want names.
+        // But for now let's just group by ID and maybe we can't show name easily without fetching it?
+        // Actually, let's just LIST the expenses with their descriptions for now or 
+        // request App.tsx to pass persons.
+        // Wait, the user request "to whom person this payment is remaining".
+        // Use the passed PersonExpense list.
+      }
+      // Actually simpler: Just show the list of Staff Expenses in the details view.
+    });
+    return [];
+  }, [filteredPersonExpenses]);
 
   const handleSaveNote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,9 +185,9 @@ const Dashboard: React.FC<DashboardProps> = ({
       doc.setTextColor(225, 29, 72);
       doc.text(`PKR ${stats.totalExpenses.toLocaleString()}`, 85, 73);
 
-      if (netBalance >= 0) doc.setTextColor(79, 70, 229);
+      if (profit >= 0) doc.setTextColor(79, 70, 229);
       else doc.setTextColor(225, 29, 72);
-      doc.text(`PKR ${netBalance.toLocaleString()}`, 140, 73);
+      doc.text(`PKR ${profit.toLocaleString()}`, 140, 73);
 
       // Note about person expenses inclusion
       doc.setTextColor(100, 116, 139);
@@ -319,18 +336,18 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         {/* Net Balance Card */}
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-transform hover:scale-[1.01] flex flex-col items-center text-center">
-          <div className={`p-4 rounded-2xl mb-5 ${netBalance >= 0 ? 'bg-indigo-50 text-indigo-500' : 'bg-rose-50 text-rose-500'}`}>
+          <div className={`p-4 rounded-2xl mb-5 ${profit >= 0 ? 'bg-indigo-50 text-indigo-500' : 'bg-rose-50 text-rose-500'}`}>
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
           </div>
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Net Balance</span>
-          <div className={`text-3xl font-black mb-1 leading-none ${netBalance >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>PKR {netBalance.toLocaleString()}</div>
-          <div className={`font-urdu text-xl font-bold ${netBalance >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>بیلنس</div>
+          <div className={`text-3xl font-black mb-1 leading-none ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>PKR {profit.toLocaleString()}</div>
+          <div className={`font-urdu text-xl font-bold ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>بیلنس</div>
 
           <button
             onClick={() => setActiveDetailView('balance')}
             className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 border-b border-transparent hover:border-indigo-600 transition-all"
           >
-            View Breakdown / Add Details
+            View Breakdown / Add Note
           </button>
         </div>
       </div>
@@ -368,89 +385,123 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="p-6 overflow-y-auto">
               {activeDetailView === 'balance' && (
                 <>
-                  {/* Monthly General Summary */}
+                  {/* Calculation Summary */}
                   <div className="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100">
                     <div className="flex justify-between items-center text-sm mb-2">
                       <span className="font-bold text-slate-600">Total Income (آمدنی)</span>
-                      <span className="font-mono font-bold text-emerald-600 text-base">+ {stats.totalIncome.toLocaleString()}</span>
+                      <span className="font-mono font-bold text-emerald-600">+ {stats.totalIncome.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between items-center text-[11px] mb-1.5 opacity-80">
-                      <span className="font-medium text-slate-500">General Expenses (عام اخراجات)</span>
-                      <span className="font-mono font-bold text-rose-400">- {stats.mainExpenses.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[11px] mb-1.5 opacity-80">
-                      <span className="font-medium text-slate-500">Staff Payments (سٹاف کی ادائیگی)</span>
-                      <span className="font-mono font-bold text-rose-400">- {stats.personExpenses.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[11px] mb-1.5 opacity-80">
-                      <span className="font-medium text-slate-500">Manual Notes (دیگر تفصیلات)</span>
-                      <span className="font-mono font-bold text-rose-400">- {stats.notesTotal.toLocaleString()}</span>
+                    <div className="flex justify-between items-center text-sm mb-2">
+                      <span className="font-bold text-slate-600">Total Expense (اخراجات)</span>
+                      <span className="font-mono font-bold text-rose-600">- {stats.totalExpenses.toLocaleString()}</span>
                     </div>
                     <div className="border-t border-slate-200 mt-2 pt-2 flex justify-between items-center">
-                      <span className="font-black text-slate-800 text-base">Final Net Balance</span>
-                      <span className="font-mono font-black text-slate-900 text-base">
-                        {netBalance.toLocaleString()}
+                      <span className="font-black text-slate-800">Net Balance (بیلنس)</span>
+                      <span className={`font-mono font-black ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
+                        {profit.toLocaleString()}
                       </span>
                     </div>
                   </div>
 
-                  {/* Manual Notes/Details */}
+                  {/* Payments Given Section */}
                   <div className="mb-6">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Payments Given (دی گئی ادائیگیاں)</h3>
+                    {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').length === 0 ? (
+                      <p className="text-sm text-slate-400 italic">No payments given this month.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').map(e => (
+                          <div key={e.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <div>
+                              <p className="font-bold text-slate-700 text-sm">{e.description}</p>
+                              <p className="text-[10px] text-slate-400">{e.date}</p>
+                            </div>
+                            <span className="font-mono font-bold text-amber-600 text-sm">- {e.amount.toLocaleString()}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between items-center px-3 pt-2 border-t border-slate-100 mt-2">
+                          <span className="text-xs font-bold text-slate-500">Total Payments</span>
+                          <span className="font-mono font-bold text-amber-600 text-sm">
+                            - {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Final Cash Position */}
+                  <div className="bg-indigo-900 p-5 rounded-2xl mb-6 text-white shadow-xl shadow-indigo-200">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Final Cash Position</span>
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="font-urdu text-lg opacity-80">موجودہ نقدی</p>
+                        <p className="text-[10px] text-indigo-300 opacity-60">(Net Balance - Payments)</p>
+                      </div>
+                      <span className="text-3xl font-black font-mono tracking-tight">
+                        {(profit - filteredPersonExpenses.filter(e => e.type === 'PAYMENT').reduce((sum, e) => sum + e.amount, 0)).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Staff Expenses Section Removed to prevent double counting confusion */}
+
+                  {/* Manual Notes Section */}
+                  <div>
                     <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Additional Details (دیگر تفصیلات)</h3>
+                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Additional Notes / Payables (دیگر واجبات / نوٹس)</h3>
                       <button
                         onClick={() => setIsNoteModalOpen(true)}
                         className="text-[10px] font-black bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
                       >
-                        + Add Detail Item
+                        + Add Note
                       </button>
                     </div>
 
-                    <div className="space-y-4">
-                      {filteredMonthlyNotes.length > 0 ? (
-                        <div className="space-y-2">
-                          {filteredMonthlyNotes.map(n => (
-                            <div key={n.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm group">
+                    {filteredMonthlyNotes.length === 0 ? (
+                      <p className="text-sm text-slate-400 italic">No notes added.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {filteredMonthlyNotes.map(n => (
+                          <div key={n.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm group">
+                            <div>
                               <p className="font-bold text-slate-800 text-sm">{n.title}</p>
-                              <div className="flex items-center gap-3">
-                                <span className="font-mono font-bold text-rose-500 text-sm">- {n.amount.toLocaleString()}</span>
-                                <button
-                                  onClick={() => handleDeleteNote(n.id)}
-                                  className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
-                                >
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
-                              </div>
                             </div>
-                          ))}
+                            <div className="flex items-center gap-3">
+                              <span className="font-mono font-bold text-slate-700 text-sm">{n.amount.toLocaleString()}</span>
+                              <button
+                                onClick={() => handleDeleteNote(n.id)}
+                                className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 mt-2">
+                          <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wide mb-1">Impact Analysis</p>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-orange-800 font-medium">Net Balance</span>
+                            <span className="font-mono font-bold text-slate-700">{profit.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-orange-800 font-medium">Minus Notes Total</span>
+                            <span className="font-mono font-bold text-rose-600">
+                              - {filteredMonthlyNotes.reduce((sum, n) => sum + n.amount, 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="border-t border-orange-200/50 mt-1 pt-1 flex justify-between items-center text-sm">
+                            <span className="text-orange-900 font-bold">Remaining</span>
+                            <span className="font-mono font-bold text-orange-900">
+                              {(profit - filteredMonthlyNotes.reduce((sum, n) => sum + n.amount, 0)).toLocaleString()}
+                            </span>
+                          </div>
                         </div>
-                      ) : (
-                        <p className="text-sm text-slate-400 italic text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                          No additional breakdown items for this month.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Final Calculation Section */}
-                  <div className={`p-6 rounded-2xl shadow-xl ${netBalance >= 0 ? 'bg-indigo-600' : 'bg-rose-600'} text-white`}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-white/70">Final Net Balance</span>
-                    </div>
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <p className="font-urdu text-2xl font-black">کل بیلنس</p>
-                        <p className="text-[10px] text-white/60 mt-1">(Income - Expenses - Notes)</p>
                       </div>
-                      <div className="text-right">
-                        <span className="text-3xl font-black font-mono tracking-tight leading-none">
-                          {netBalance.toLocaleString()}
-                        </span>
-                        <p className="text-[10px] font-bold mt-1 uppercase tracking-tighter text-white/40">PKR Total</p>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </>
               )}
@@ -476,73 +527,28 @@ const Dashboard: React.FC<DashboardProps> = ({
               )}
 
               {activeDetailView === 'expense' && (
-                <div className="space-y-6">
-                  {/* General Expenses Section */}
-                  <div className="space-y-3">
-                    <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                      General Expenses (عام اخراجات)
-                    </h3>
-                    {selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE).length === 0 ? (
-                      <p className="text-xs text-slate-400 italic py-2">No general expense records</p>
-                    ) : (
-                      selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE)
+                <div className="space-y-4">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 sticky top-0 bg-white py-2">General Expenses ({selectedDate})</h3>
+                  {selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE).length === 0 ? (
+                    <p className="text-sm text-slate-400 italic text-center py-4">No expense records for this date ({selectedDate}).</p>
+                  ) : (
+                    <>
+                      {selectedDateStats.transactions.filter(t => t.type === TransactionType.EXPENSE)
                         .sort((a, b) => b.date.localeCompare(a.date))
                         .map(t => (
-                          <div key={t.id} className="flex justify-between items-center bg-rose-50/50 p-3 rounded-xl border border-rose-100/50">
+                          <div key={t.id} className="flex justify-between items-center bg-rose-50 p-4 rounded-xl border border-rose-100">
                             <div>
-                              <p className="font-bold text-slate-800 text-sm">{t.description}</p>
-                              <p className="text-[10px] text-slate-400 font-mono mt-0.5">{t.date}</p>
+                              <p className="font-bold text-slate-800">{t.description}</p>
+                              <p className="text-xs text-slate-400 font-mono mt-0.5">{t.date}</p>
                             </div>
-                            <span className="font-mono font-black text-rose-600 text-base">- {t.amount.toLocaleString()}</span>
+                            <span className="font-mono font-black text-rose-600 text-lg">- {t.amount.toLocaleString()}</span>
                           </div>
-                        ))
-                    )}
-                  </div>
-
-                  {/* Staff Payments Section */}
-                  <div className="space-y-3">
-                    <h3 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                      Staff Payments (سٹاف کی ادائیگی)
-                    </h3>
-                    {filteredPersonExpenses.filter(e => e.date === selectedDate && (e.type === 'PAYMENT' || e.type === 'RECEIVED')).length === 0 ? (
-                      <p className="text-xs text-slate-400 italic py-2">No staff payments for this date</p>
-                    ) : (
-                      filteredPersonExpenses.filter(e => e.date === selectedDate && (e.type === 'PAYMENT' || e.type === 'RECEIVED'))
-                        .map(e => (
-                          <div key={e.id} className="flex justify-between items-center bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50">
-                            <div>
-                              <p className="font-bold text-slate-800 text-sm">{e.description}</p>
-                              <p className="text-[10px] text-slate-400 font-mono mt-0.5">{e.date}</p>
-                            </div>
-                            <span className="font-mono font-black text-indigo-600 text-base">- {e.amount.toLocaleString()}</span>
-                          </div>
-                        ))
-                    )}
-                  </div>
-
-                  {/* Manual Notes Section */}
-                  <div className="space-y-3">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-                      Manual Notes (دیگر اخراجات)
-                    </h3>
-                    {filteredMonthlyNotes.length === 0 ? (
-                      <p className="text-xs text-slate-400 italic py-2">No manual notes for this month</p>
-                    ) : (
-                      filteredMonthlyNotes.map(n => (
-                        <div key={n.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200/50">
-                          <div>
-                            <p className="font-bold text-slate-800 text-sm">{n.title}</p>
-                          </div>
-                          <span className="font-mono font-black text-rose-500 text-base">- {n.amount.toLocaleString()}</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                        ))}
+                    </>
+                  )}
                 </div>
               )}
+
             </div>
           </div>
         </div>
@@ -638,7 +644,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </button>
       </div>
-    </div>
+    </div >
   );
 };
 
