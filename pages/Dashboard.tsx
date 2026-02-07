@@ -505,10 +505,10 @@ const Dashboard: React.FC<DashboardProps> = ({
 
               {activeDetailView === 'income' && (
                 <div className="space-y-4">
-                  {filteredTransactions.filter(t => t.type === TransactionType.INCOME).length === 0 ? (
-                    <p className="text-sm text-slate-400 italic text-center py-4">No income records for this month.</p>
+                  {todayStats.transactions.filter(t => t.type === TransactionType.INCOME).length === 0 ? (
+                    <p className="text-sm text-slate-400 italic text-center py-4">No income records for today.</p>
                   ) : (
-                    filteredTransactions.filter(t => t.type === TransactionType.INCOME)
+                    todayStats.transactions.filter(t => t.type === TransactionType.INCOME)
                       .sort((a, b) => b.date.localeCompare(a.date)) // newest first
                       .map(t => (
                         <div key={t.id} className="flex justify-between items-center bg-emerald-50 p-4 rounded-xl border border-emerald-100">
@@ -525,12 +525,12 @@ const Dashboard: React.FC<DashboardProps> = ({
 
               {activeDetailView === 'expense' && (
                 <div className="space-y-4">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 sticky top-0 bg-white py-2">General Expenses</h3>
-                  {filteredTransactions.filter(t => t.type === TransactionType.EXPENSE).length === 0 ? (
-                    <p className="text-sm text-slate-400 italic text-center py-4">No expense records for this month.</p>
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 sticky top-0 bg-white py-2">General Expenses (Today)</h3>
+                  {todayStats.transactions.filter(t => t.type === TransactionType.EXPENSE).length === 0 ? (
+                    <p className="text-sm text-slate-400 italic text-center py-4">No expense records for today.</p>
                   ) : (
                     <>
-                      {filteredTransactions.filter(t => t.type === TransactionType.EXPENSE)
+                      {todayStats.transactions.filter(t => t.type === TransactionType.EXPENSE)
                         .sort((a, b) => b.date.localeCompare(a.date))
                         .map(t => (
                           <div key={t.id} className="flex justify-between items-center bg-rose-50 p-4 rounded-xl border border-rose-100">
