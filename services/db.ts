@@ -353,5 +353,25 @@ export const db = {
       .eq('id', id);
 
     if (error) throw error;
+  },
+
+  // Storage Methods
+  uploadFile: async (bucket: string, path: string, file: File): Promise<string> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, {
+        upsert: true
+      });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path);
+
+    return publicUrl;
   }
 };

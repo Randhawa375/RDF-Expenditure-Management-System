@@ -76,5 +76,6 @@ export interface ToriRecord {
   price_per_mun: number;
   payment_given: number;
   description: string;
+  slip_url?: string;
   created_at?: string;
 }

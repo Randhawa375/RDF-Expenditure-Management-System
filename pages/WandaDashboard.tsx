@@ -3,11 +3,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../services/db';
 import { WandaRecord } from '../types';
 import WandaFormModal from '../components/WandaFormModal';
+import { PdfGenerator } from '../services/pdfGenerator';
 
 const WandaDashboard: React.FC = () => {
     const [records, setRecords] = useState<WandaRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalMode, setModalMode] = useState<'FULL' | 'PAYMENT_ONLY'>('FULL');
     const [editingRecord, setEditingRecord] = useState<WandaRecord | null>(null);
 
     useEffect(() => {
@@ -59,6 +61,45 @@ const WandaDashboard: React.FC = () => {
         }
     };
 
+    const downloadReport = async () => {
+        try {
+            const doc = await PdfGenerator.initPDF();
+            PdfGenerator.addHeader(doc, 'WANDA LEDGER REPORT', 'RDF EMS', `GENERATED: ${new Date().toLocaleDateString()}`);
+
+            const tableColumn = ["Date", "Bags", "Price/Bag", "Total Bill", "Paid", "Description"];
+            const tableRows = records.map(r => [
+                r.date,
+                r.bags,
+                r.price_per_bag.toLocaleString(),
+                (r.bags * r.price_per_bag).toLocaleString(),
+                r.payment_given.toLocaleString(),
+                r.description
+            ]);
+
+            (doc as any).autoTable({
+                startY: 50,
+                head: [tableColumn],
+                body: tableRows,
+                theme: 'grid',
+                styles: { font: 'Amiri', fontSize: 9 },
+                headStyles: { fillColor: [15, 23, 42] }
+            });
+
+            const finalY = (doc as any).lastAutoTable.finalY + 10;
+            doc.setFontSize(10);
+            doc.text(`Total Bags: ${stats.totalBags}`, 14, finalY);
+            doc.text(`Total Due: PKR ${stats.totalDue.toLocaleString()}`, 14, finalY + 5);
+            doc.text(`Total Paid: PKR ${stats.totalPaid.toLocaleString()}`, 14, finalY + 10);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Remaining Balance: PKR ${remainingBalance.toLocaleString()}`, 14, finalY + 15);
+
+            PdfGenerator.addFooter(doc);
+            doc.save('Wanda_Ledger_Report.pdf');
+        } catch (e) {
+            alert('Error generating PDF');
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -70,15 +111,35 @@ const WandaDashboard: React.FC = () => {
                         Track bags, prices, and payments for Wanda.
                     </p>
                 </div>
-                <button
-                    onClick={() => { setEditingRecord(null); setIsModalOpen(true); }}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow hover:brightness-105 active:scale-95 transition-all"
-                >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Wanda Record (نیا ریکارڈ)
-                </button>
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={downloadReport}
+                        className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow transition-all"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Report
+                    </button>
+                    <button
+                        onClick={() => { setModalMode('PAYMENT_ONLY'); setEditingRecord(null); setIsModalOpen(true); }}
+                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow transition-all"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Add Payment (رقم کی ادائیگی)
+                    </button>
+                    <button
+                        onClick={() => { setModalMode('FULL'); setEditingRecord(null); setIsModalOpen(true); }}
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow transition-all"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Wanda (بوریاں ڈالیں)
+                    </button>
+                </div>
             </div>
 
             {/* Stats Cards */}
@@ -183,6 +244,7 @@ const WandaDashboard: React.FC = () => {
                     onClose={() => { setIsModalOpen(false); setEditingRecord(null); }}
                     onSave={handleSave}
                     editRecord={editingRecord}
+                    mode={modalMode}
                 />
             )}
         </div>
