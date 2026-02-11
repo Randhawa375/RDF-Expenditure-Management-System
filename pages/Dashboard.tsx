@@ -29,6 +29,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [noteTitle, setNoteTitle] = useState('');
   const [noteAmount, setNoteAmount] = useState('');
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+  const [balanceNote, setBalanceNote] = useState('');
+  const [isSavingBalanceNote, setIsSavingBalanceNote] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Intl.DateTimeFormat('en-CA', {
@@ -54,6 +56,12 @@ const Dashboard: React.FC<DashboardProps> = ({
   const filteredMonthlyNotes = useMemo(() => {
     return monthlyNotes.filter(n => n.month === selectedMonth);
   }, [monthlyNotes, selectedMonth]);
+
+  // Load existing balance note when modal opens or month changes
+  React.useEffect(() => {
+    const existing = filteredMonthlyNotes.find(n => n.id === `balance-note-${selectedMonth}`);
+    setBalanceNote(existing ? existing.title : '');
+  }, [filteredMonthlyNotes, activeDetailView, selectedMonth]);
 
   // Today's Date helpers
   const todayDate = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -144,6 +152,25 @@ const Dashboard: React.FC<DashboardProps> = ({
       console.error(error);
     } finally {
       setIsSubmittingNote(false);
+    }
+  };
+
+  const handleSaveBalanceNote = async () => {
+    if (!onSaveNote) return;
+    setIsSavingBalanceNote(true);
+    try {
+      await onSaveNote({
+        id: `balance-note-${selectedMonth}`,
+        month: selectedMonth,
+        title: balanceNote,
+        amount: 0
+      });
+      alert('Note saved successfully!');
+    } catch (error) {
+      console.error(error);
+      alert('Failed to save note');
+    } finally {
+      setIsSavingBalanceNote(false);
     }
   };
 
@@ -403,105 +430,35 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Payments Given Section */}
-                  <div className="mb-6">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Payments Given (دی گئی ادائیگیاں)</h3>
-                    {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').length === 0 ? (
-                      <p className="text-sm text-slate-400 italic">No payments given this month.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').map(e => (
-                          <div key={e.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <div>
-                              <p className="font-bold text-slate-700 text-sm">{e.description}</p>
-                              <p className="text-[10px] text-slate-400">{e.date}</p>
-                            </div>
-                            <span className="font-mono font-bold text-amber-600 text-sm">- {e.amount.toLocaleString()}</span>
-                          </div>
-                        ))}
-                        <div className="flex justify-between items-center px-3 pt-2 border-t border-slate-100 mt-2">
-                          <span className="text-xs font-bold text-slate-500">Total Payments</span>
-                          <span className="font-mono font-bold text-amber-600 text-sm">
-                            - {filteredPersonExpenses.filter(e => e.type === 'PAYMENT').reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
-                          </span>
-                        </div>
+                  {/* Add Note Section */}
+                  <div className="mt-4">
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-4 text-center">Add Note regarding Balance</h3>
+
+                    {profit > 0 && (
+                      <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl mb-4">
+                        <p className="text-emerald-700 text-sm font-bold flex items-center gap-2">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          You have a surplus balance. Please add a note to explain its allocation.
+                        </p>
                       </div>
                     )}
-                  </div>
 
-                  {/* Final Cash Position */}
-                  <div className="bg-indigo-900 p-5 rounded-2xl mb-6 text-white shadow-xl shadow-indigo-200">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Final Cash Position</span>
-                    </div>
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <p className="font-urdu text-lg opacity-80">موجودہ نقدی</p>
-                        <p className="text-[10px] text-indigo-300 opacity-60">(Net Balance - Payments)</p>
-                      </div>
-                      <span className="text-3xl font-black font-mono tracking-tight">
-                        {(profit - filteredPersonExpenses.filter(e => e.type === 'PAYMENT').reduce((sum, e) => sum + e.amount, 0)).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
+                    <textarea
+                      value={balanceNote}
+                      onChange={(e) => setBalanceNote(e.target.value)}
+                      placeholder="Type your note here..."
+                      className="w-full h-32 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
+                    />
 
-                  {/* Staff Expenses Section Removed to prevent double counting confusion */}
-
-                  {/* Manual Notes Section */}
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Additional Notes / Payables (دیگر واجبات / نوٹس)</h3>
-                      <button
-                        onClick={() => setIsNoteModalOpen(true)}
-                        className="text-[10px] font-black bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
-                      >
-                        + Add Note
-                      </button>
-                    </div>
-
-                    {filteredMonthlyNotes.length === 0 ? (
-                      <p className="text-sm text-slate-400 italic">No notes added.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {filteredMonthlyNotes.map(n => (
-                          <div key={n.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm group">
-                            <div>
-                              <p className="font-bold text-slate-800 text-sm">{n.title}</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="font-mono font-bold text-slate-700 text-sm">{n.amount.toLocaleString()}</span>
-                              <button
-                                onClick={() => handleDeleteNote(n.id)}
-                                className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
-                              >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                        <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 mt-2">
-                          <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wide mb-1">Impact Analysis</p>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-orange-800 font-medium">Net Balance</span>
-                            <span className="font-mono font-bold text-slate-700">{profit.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-orange-800 font-medium">Minus Notes Total</span>
-                            <span className="font-mono font-bold text-rose-600">
-                              - {filteredMonthlyNotes.reduce((sum, n) => sum + n.amount, 0).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="border-t border-orange-200/50 mt-1 pt-1 flex justify-between items-center text-sm">
-                            <span className="text-orange-900 font-bold">Remaining</span>
-                            <span className="font-mono font-bold text-orange-900">
-                              {(profit - filteredMonthlyNotes.reduce((sum, n) => sum + n.amount, 0)).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    <button
+                      onClick={handleSaveBalanceNote}
+                      disabled={isSavingBalanceNote}
+                      className="w-full mt-4 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {isSavingBalanceNote ? 'Saving...' : 'Save Note'}
+                    </button>
                   </div>
                 </>
               )}
