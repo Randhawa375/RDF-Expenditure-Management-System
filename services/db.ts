@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Transaction, User, TransactionType, Person, PersonExpense, MonthlyNote } from '../types';
+import { Transaction, User, TransactionType, Person, PersonExpense, MonthlyNote, WandaRecord, ToriRecord } from '../types';
 
 export const db = {
   // Transaction Methods
@@ -258,6 +258,97 @@ export const db = {
   deleteMonthlyNote: async (id: string): Promise<void> => {
     const { error } = await supabase
       .from('monthly_notes')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  // Wanda Methods
+  getWandaRecords: async (): Promise<WandaRecord[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('wanda_records')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching wanda records:', error);
+      return [];
+    }
+    return data as WandaRecord[];
+  },
+
+  saveWandaRecord: async (record: WandaRecord): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('wanda_records')
+      .upsert({
+        id: record.id,
+        user_id: user.id,
+        date: record.date,
+        bags: record.bags,
+        price_per_bag: record.price_per_bag,
+        payment_given: record.payment_given,
+        description: record.description,
+        slip_url: record.slip_url
+      });
+
+    if (error) throw error;
+  },
+
+  deleteWandaRecord: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('wanda_records')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  // Tori Methods
+  getToriRecords: async (): Promise<ToriRecord[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('tori_records')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching tori records:', error);
+      return [];
+    }
+    return data as ToriRecord[];
+  },
+
+  saveToriRecord: async (record: ToriRecord): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('tori_records')
+      .upsert({
+        id: record.id,
+        user_id: user.id,
+        date: record.date,
+        mun: record.mun,
+        price_per_mun: record.price_per_mun,
+        payment_given: record.payment_given,
+        description: record.description
+      });
+
+    if (error) throw error;
+  },
+
+  deleteToriRecord: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('tori_records')
       .delete()
       .eq('id', id);
 

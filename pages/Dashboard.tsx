@@ -643,6 +643,32 @@ const Dashboard: React.FC<DashboardProps> = ({
             <span className="text-2xl md:text-3xl font-urdu font-black text-indigo-600 leading-tight">افراد کا کھاتہ</span>
           </div>
         </button>
+
+        <button
+          onClick={() => navigate('/wanda')}
+          className="bg-white hover:bg-amber-50 text-slate-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all flex flex-col md:flex-row gap-6 items-center group"
+        >
+          <div className="bg-amber-500 text-white p-5 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-amber-200">
+            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+          </div>
+          <div className="flex flex-col items-center md:items-start text-center md:text-left">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-2">Wanda Dashboard</span>
+            <span className="text-2xl md:text-3xl font-urdu font-black text-amber-600 leading-tight">ونڈا کا کھاتہ</span>
+          </div>
+        </button>
+
+        <button
+          onClick={() => navigate('/tori')}
+          className="bg-white hover:bg-emerald-50 text-slate-900 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all flex flex-col md:flex-row gap-6 items-center group"
+        >
+          <div className="bg-emerald-500 text-white p-5 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-emerald-200">
+            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+          </div>
+          <div className="flex flex-col items-center md:items-start text-center md:text-left">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-2">Tori Dashboard</span>
+            <span className="text-2xl md:text-3xl font-urdu font-black text-emerald-600 leading-tight">تھوری کا کھاتہ</span>
+          </div>
+        </button>
       </div>
     </div >
   );

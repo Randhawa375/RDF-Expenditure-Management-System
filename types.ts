@@ -55,3 +55,26 @@ export interface MonthlyNote {
   title: string;
   amount: number;
 }
+
+export interface WandaRecord {
+  id: string;
+  user_id?: string;
+  date: string;
+  bags: number;
+  price_per_bag: number;
+  payment_given: number;
+  description: string;
+  slip_url?: string;
+  created_at?: string;
+}
+
+export interface ToriRecord {
+  id: string;
+  user_id?: string;
+  date: string;
+  mun: number;
+  price_per_mun: number;
+  payment_given: number;
+  description: string;
+  created_at?: string;
+}

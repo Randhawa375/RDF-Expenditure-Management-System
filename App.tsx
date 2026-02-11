@@ -11,6 +11,8 @@ import Reports from './pages/Reports';
 import Auth from './pages/Auth';
 import PeopleManager from './pages/PeopleManager';
 import PersonLedgerPage from './pages/PersonLedgerPage';
+import WandaDashboard from './pages/WandaDashboard';
+import ToriDashboard from './pages/ToriDashboard';
 
 interface NavigationProps {
   user: User;
@@ -23,7 +25,9 @@ const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
     { path: '/', label: 'Overview', urdu: 'جائزہ' },
     { path: '/expenses', label: 'Expenses', urdu: 'اخراجات' },
     { path: '/receipts', label: 'Payment Received', urdu: 'ادائیگی موصول ہوئی' },
-    { path: '/people', label: 'Persons', urdu: 'افراد' }
+    { path: '/people', label: 'Persons', urdu: 'افراد' },
+    { path: '/wanda', label: 'Wanda', urdu: 'ونڈا' },
+    { path: '/tori', label: 'Tori', urdu: 'تھوری' }
   ];
 
   return (
@@ -328,6 +332,8 @@ const App: React.FC = () => {
                 />
                 <Route path="/people" element={<PeopleManager />} />
                 <Route path="/people/:id" element={<PersonLedgerPage />} />
+                <Route path="/wanda" element={<WandaDashboard />} />
+                <Route path="/tori" element={<ToriDashboard />} />
                 <Route path="/reports" element={<Reports transactions={transactions} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
