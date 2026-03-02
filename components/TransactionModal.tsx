@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Transaction, TransactionType, Person } from '../types';
+import { Transaction, TransactionType, Person, TransactionCategory, categoryLabels } from '../types';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -37,6 +37,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     })(),
     amount: 0,
     description: '',
+    category: TransactionCategory.MISC
   });
   const [selectedPersonId, setSelectedPersonId] = useState<string>('');
   const [targetPersonId, setTargetPersonId] = useState<string>('');
@@ -58,7 +59,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           }).format(new Date());
         })(),
         amount: 0,
-        description: ''
+        description: '',
+        category: TransactionCategory.MISC
       });
       setSelectedPersonId('');
       setTargetPersonId('');
@@ -200,6 +202,35 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                   </option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {/* Category selection - Only for Expense */}
+          {activeType === TransactionType.EXPENSE && (
+            <div>
+              <label className="block text-[10px] font-black text-rose-400 uppercase tracking-[0.2em] mb-2 leading-none">
+                Category (زمرہ)
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {(Object.keys(categoryLabels) as TransactionCategory[]).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, category: cat })}
+                    className={`px-3 py-3 rounded-xl border text-left transition-all ${formData.category === cat
+                      ? 'bg-rose-50 border-rose-200 text-rose-700 shadow-sm'
+                      : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
+                      }`}
+                  >
+                    <div className="text-[9px] font-black uppercase tracking-tight leading-none mb-1 opacity-60">
+                      {categoryLabels[cat].en}
+                    </div>
+                    <div className="font-urdu font-bold text-xs leading-none">
+                      {categoryLabels[cat].ur}
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

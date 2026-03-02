@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Transaction, TransactionType, PersonExpense, MonthlyNote } from '../types';
+import { Transaction, TransactionType, PersonExpense, MonthlyNote, TransactionCategory, categoryLabels } from '../types';
 import { jsPDF } from 'jspdf';
 import { PdfGenerator } from '../services/pdfGenerator';
 import autoTable from 'jspdf-autotable';
@@ -109,6 +109,22 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, [filteredTransactions, filteredPersonExpenses]);
 
   const profit = stats.totalIncome - stats.totalExpenses;
+
+  const categoryBreakdown = useMemo(() => {
+    const breakdown: Record<string, number> = {};
+    Object.values(TransactionCategory).forEach(cat => {
+      breakdown[cat] = 0;
+    });
+
+    filteredTransactions.forEach(t => {
+      if (t.type === TransactionType.EXPENSE) {
+        const cat = t.category || TransactionCategory.MISC;
+        breakdown[cat] = (breakdown[cat] || 0) + t.amount;
+      }
+    });
+
+    return breakdown;
+  }, [filteredTransactions]);
 
   // Group Person Expenses for Breakdown
   const personBreakdown = useMemo(() => {
@@ -376,6 +392,35 @@ const Dashboard: React.FC<DashboardProps> = ({
           >
             View Breakdown / Add Note
           </button>
+        </div>
+      </div>
+
+      {/* Expense Breakdown Section */}
+      <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col">
+            <h3 className="text-lg font-black text-slate-900 tracking-tight leading-none">Expense Breakdown</h3>
+            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1 leading-none">Category Wise Summary</span>
+          </div>
+          <div className="text-right">
+            <span className="font-urdu text-rose-600 text-lg font-bold block leading-none">اخراجات کی تفصیل</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+          {(Object.keys(categoryLabels) as TransactionCategory[]).map((cat) => (
+            <div key={cat} className="bg-slate-50 p-4 rounded-2xl border border-transparent hover:border-slate-200 transition-all group">
+              <div className="text-[9px] font-black text-slate-400 uppercase tracking-tight mb-1 group-hover:text-slate-600 transition-colors">
+                {categoryLabels[cat].en}
+              </div>
+              <div className="font-urdu font-bold text-[10px] text-slate-500 mb-2 leading-none">
+                {categoryLabels[cat].ur}
+              </div>
+              <div className="text-lg font-black text-slate-900 tabular-nums leading-none">
+                PKR {categoryBreakdown[cat]?.toLocaleString() || 0}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

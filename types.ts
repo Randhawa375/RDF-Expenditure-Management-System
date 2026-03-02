@@ -12,9 +12,26 @@ export interface User {
   password?: string;
 }
 
+export enum TransactionCategory {
+  MILK_PAYMENT = 'MILK_PAYMENT',
+  WORKER_EXPENSE = 'WORKER_EXPENSE',
+  FARM_EXPENSE = 'FARM_EXPENSE',
+  FOOD = 'FOOD',
+  MISC = 'MISC'
+}
+
+export const categoryLabels: Record<TransactionCategory, { en: string, ur: string }> = {
+  [TransactionCategory.MILK_PAYMENT]: { en: 'Milk Payment', ur: 'دودھ کی ادائیگی' },
+  [TransactionCategory.WORKER_EXPENSE]: { en: 'Worker Expense', ur: 'ورکر کا خرچہ' },
+  [TransactionCategory.FARM_EXPENSE]: { en: 'Farm Expense', ur: 'فارم کا خرچہ' },
+  [TransactionCategory.FOOD]: { en: 'Food', ur: 'خوراک' },
+  [TransactionCategory.MISC]: { en: 'Misc Kharcha', ur: 'دیگر اخراجات' }
+};
+
 export interface Transaction {
   id: string;
   type: TransactionType;
+  category?: TransactionCategory;
   date: string;
   description: string;
   amount: number;

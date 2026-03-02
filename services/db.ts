@@ -33,6 +33,7 @@ export const db = {
         id: transaction.id,
         user_id: user.id,
         type: transaction.type,
+        category: transaction.category,
         date: transaction.date,
         description: transaction.description,
         amount: transaction.amount,
