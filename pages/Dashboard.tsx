@@ -242,66 +242,90 @@ const Dashboard: React.FC<DashboardProps> = ({
       doc.setTextColor(30, 41, 59);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Transaction Details', 20, 95);
+      doc.text('Date-wise Transaction Details', 20, 95);
 
-      // Merge and sort all transactions + person expenses for the report
-      const allItems = [
-        ...filteredTransactions.map(t => ({
-          ...t,
-          displayType: t.type === TransactionType.INCOME ? 'Received' : 'Expense'
-        }))
-      ].sort((a, b) => a.date.localeCompare(b.date));
+      // Group by date
+      const groupedByDate: Record<string, typeof filteredTransactions> = {};
+      filteredTransactions.forEach(t => {
+        if (!groupedByDate[t.date]) groupedByDate[t.date] = [];
+        groupedByDate[t.date].push(t);
+      });
 
-      const tableColumn = ["Date", "Type", "Description", "Amount (PKR)"];
-      const tableRows = allItems.map(t => [
-        t.date,
-        t.displayType,
-        t.description,
-        t.amount.toLocaleString()
-      ]);
+      const sortedDates = Object.keys(groupedByDate).sort();
 
-      autoTable(doc, {
-        startY: 100,
-        head: [tableColumn],
-        body: tableRows,
-        theme: 'grid',
-        styles: {
-          font: 'Amiri',
-          fontStyle: 'normal',
-          fontSize: 9,
-          textColor: [30, 41, 59],
-          valign: 'middle',
-          lineColor: [226, 232, 240],
-          lineWidth: 0.1,
-          cellPadding: 4
-        },
-        headStyles: {
-          fillColor: [15, 23, 42], // Slate 900
-          textColor: [255, 255, 255],
-          fontStyle: 'bold',
-          font: 'helvetica',
-          halign: 'left'
-        },
-        columnStyles: {
-          0: { cellWidth: 25 },
-          1: { cellWidth: 25 },
-          2: { cellWidth: 'auto' },
-          3: { cellWidth: 35, halign: 'right', fontStyle: 'bold' },
-        },
-        alternateRowStyles: {
-          fillColor: [248, 250, 252] // Slate 50
-        },
-        margin: { top: 30, right: 20, left: 20 },
-        didParseCell: (data: any) => {
-          // Color coding for amount column
-          if (data.section === 'body' && data.column.index === 3) {
-            const originalEntry = allItems[data.row.index];
-            if (originalEntry) {
-              const isIncome = originalEntry.type === TransactionType.INCOME;
-              data.cell.styles.textColor = isIncome ? [16, 185, 129] : [225, 29, 72];
+      let currentY = 100;
+
+      sortedDates.forEach((dateString, dateIdx) => {
+        const dayItems = groupedByDate[dateString].sort((a, b) => a.id.localeCompare(b.id));
+        const dayIncome = dayItems.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0);
+        const dayExpense = dayItems.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
+
+        // Date Header
+        if (currentY > 250) {
+          doc.addPage();
+          currentY = 30;
+        }
+
+        doc.setFillColor(241, 245, 249);
+        doc.rect(20, currentY, 170, 8, 'F');
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(51, 65, 85);
+        doc.text(`DATE: ${dateString}`, 25, currentY + 5.5);
+
+        // Daily Summary on header right
+        doc.setFontSize(7);
+        doc.text(`Day Received: ${dayIncome.toLocaleString()} | Day Exp: ${dayExpense.toLocaleString()}`, 190, currentY + 5.5, { align: 'right' });
+
+        currentY += 8;
+
+        const tableColumn = ["Type", "Category / Description", "Amount (PKR)"];
+        const tableRows = dayItems.map(t => [
+          t.type === TransactionType.INCOME ? 'Received' : 'Expense',
+          t.category ? `${categoryLabels[t.category as TransactionCategory]?.en || t.category} - ${t.description}` : t.description,
+          t.amount.toLocaleString()
+        ]);
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [tableColumn],
+          body: tableRows,
+          theme: 'grid',
+          styles: {
+            font: 'Amiri',
+            fontStyle: 'normal',
+            fontSize: 8,
+            textColor: [30, 41, 59],
+            valign: 'middle',
+            lineColor: [226, 232, 240],
+            lineWidth: 0.1,
+            cellPadding: 3
+          },
+          headStyles: {
+            fillColor: [71, 85, 105], // Slate 600
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            font: 'helvetica',
+            halign: 'left'
+          },
+          columnStyles: {
+            0: { cellWidth: 20 },
+            1: { cellWidth: 'auto' },
+            2: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
+          },
+          alternateRowStyles: {
+            fillColor: [255, 255, 255]
+          },
+          margin: { right: 20, left: 20 },
+          didParseCell: (data: any) => {
+            if (data.section === 'body' && data.column.index === 2) {
+              const item = dayItems[data.row.index];
+              data.cell.styles.textColor = item.type === TransactionType.INCOME ? [16, 185, 129] : [225, 29, 72];
             }
           }
-        }
+        });
+
+        currentY = (doc as any).lastAutoTable.finalY + 10;
       });
 
       PdfGenerator.addFooter(doc);
@@ -315,28 +339,28 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* Header Area - Centered for both views */}
-      <div className="flex flex-col items-center gap-6 text-center max-w-2xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+      {/* Header Area - Improved mobile padding/spacing */}
+      <div className="flex flex-col items-center gap-4 md:gap-6 text-center max-w-2xl mx-auto px-2">
+        <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight">
           Welcome to <span className="text-indigo-600">RDF</span>
         </h2>
 
-        <div className="flex flex-col items-center gap-4 w-full">
-          {/* Month Picker Styled like a button */}
-          <div className="bg-white border border-slate-100 p-2 rounded-2xl flex items-center shadow-sm w-full max-w-xs transition-all hover:border-indigo-200">
-            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest px-4 border-r border-slate-100 mr-2">Date</span>
+        <div className="flex flex-col items-center gap-3 w-full">
+          {/* Month Picker Styled like a button - Better mobile sizing */}
+          <div className="bg-white border border-slate-100 p-1.5 md:p-2 rounded-2xl flex items-center shadow-sm w-full max-w-[280px] md:max-w-xs transition-all hover:border-indigo-200">
+            <span className="text-[8px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest px-3 md:px-4 border-r border-slate-100 mr-2">Date</span>
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent border-none px-4 py-2 rounded-xl text-sm font-bold text-slate-700 focus:ring-0 cursor-pointer w-full text-center"
+              className="bg-transparent border-none px-2 md:px-4 py-1.5 md:py-2 rounded-xl text-xs md:text-sm font-bold text-slate-700 focus:ring-0 cursor-pointer w-full text-center"
             />
           </div>
 
-          {/* Download Button */}
+          {/* Download Button - Adjusted for mobile */}
           <button
             onClick={downloadFullMonthlyReport}
-            className="bg-slate-900 text-white w-full max-w-xs px-6 py-4 rounded-2xl flex items-center justify-center gap-4 hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95 group"
+            className="bg-slate-900 text-white w-full max-w-[280px] md:max-w-xs px-5 md:px-6 py-3 md:py-4 rounded-2xl flex items-center justify-center gap-3 md:gap-4 hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95 group"
           >
             <svg className="w-5 h-5 text-slate-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -354,41 +378,41 @@ const Dashboard: React.FC<DashboardProps> = ({
         {/* Payment Received Card */}
         <button
           onClick={() => setActiveDetailView('income')}
-          className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:scale-[1.01] hover:shadow-md flex flex-col items-center text-center cursor-pointer group"
+          className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:scale-[1.01] hover:shadow-md flex flex-col items-center text-center cursor-pointer group"
         >
-          <div className="p-4 bg-emerald-50 text-emerald-500 rounded-2xl mb-5 group-hover:scale-110 transition-transform">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
+          <div className="p-3 md:p-4 bg-emerald-50 text-emerald-500 rounded-2xl mb-4 md:mb-5 group-hover:scale-110 transition-transform">
+            <svg className="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
           </div>
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 group-hover:text-emerald-600 transition-colors">Payment Received</span>
-          <div className="text-3xl font-black text-slate-900 mb-1 leading-none">PKR {stats.totalIncome.toLocaleString()}</div>
-          <div className="font-urdu text-emerald-600 text-xl font-bold">وصول شدہ رقم</div>
+          <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 md:mb-2 group-hover:text-emerald-600 transition-colors">Payment Received</span>
+          <div className="text-2xl md:text-3xl font-black text-slate-900 mb-0.5 md:mb-1 leading-none">PKR {stats.totalIncome.toLocaleString()}</div>
+          <div className="font-urdu text-emerald-600 text-lg md:text-xl font-bold">وصول شدہ رقم</div>
         </button>
 
         {/* Total Expense Card */}
         <button
           onClick={() => setActiveDetailView('expense')}
-          className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:scale-[1.01] hover:shadow-md flex flex-col items-center text-center cursor-pointer group"
+          className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:scale-[1.01] hover:shadow-md flex flex-col items-center text-center cursor-pointer group"
         >
-          <div className="p-4 bg-rose-50 text-rose-500 rounded-2xl mb-5 group-hover:scale-110 transition-transform">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M20 12H4" /></svg>
+          <div className="p-3 md:p-4 bg-rose-50 text-rose-500 rounded-2xl mb-4 md:mb-5 group-hover:scale-110 transition-transform">
+            <svg className="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M20 12H4" /></svg>
           </div>
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 group-hover:text-rose-600 transition-colors">Total Expense</span>
-          <div className="text-3xl font-black text-slate-900 mb-1 leading-none">PKR {stats.totalExpenses.toLocaleString()}</div>
-          <div className="font-urdu text-rose-600 text-xl font-bold">کل خرچہ</div>
+          <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 md:mb-2 group-hover:text-rose-600 transition-colors">Total Expense</span>
+          <div className="text-2xl md:text-3xl font-black text-slate-900 mb-0.5 md:mb-1 leading-none">PKR {stats.totalExpenses.toLocaleString()}</div>
+          <div className="font-urdu text-rose-600 text-lg md:text-xl font-bold">کل خرچہ</div>
         </button>
 
         {/* Net Balance Card */}
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-transform hover:scale-[1.01] flex flex-col items-center text-center">
-          <div className={`p-4 rounded-2xl mb-5 ${profit >= 0 ? 'bg-indigo-50 text-indigo-500' : 'bg-rose-50 text-rose-500'}`}>
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+        <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm transition-transform hover:scale-[1.01] flex flex-col items-center text-center">
+          <div className={`p-3 md:p-4 rounded-2xl mb-4 md:mb-5 ${profit >= 0 ? 'bg-indigo-50 text-indigo-500' : 'bg-rose-50 text-rose-500'}`}>
+            <svg className="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
           </div>
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Net Balance</span>
-          <div className={`text-3xl font-black mb-1 leading-none ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>PKR {profit.toLocaleString()}</div>
-          <div className={`font-urdu text-xl font-bold ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>بیلنس</div>
+          <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 md:mb-2">Net Balance</span>
+          <div className={`text-2xl md:text-3xl font-black mb-0.5 md:mb-1 leading-none ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>PKR {profit.toLocaleString()}</div>
+          <div className={`font-urdu text-lg md:text-xl font-bold ${profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>بیلنس</div>
 
           <button
             onClick={() => setActiveDetailView('balance')}
-            className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 border-b border-transparent hover:border-indigo-600 transition-all"
+            className="mt-3 md:mt-4 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 border-b border-transparent hover:border-indigo-600 transition-all"
           >
             View Breakdown / Add Note
           </button>

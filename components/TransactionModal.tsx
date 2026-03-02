@@ -208,24 +208,24 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           {/* Category selection - Only for Expense */}
           {activeType === TransactionType.EXPENSE && (
             <div>
-              <label className="block text-[10px] font-black text-rose-400 uppercase tracking-[0.2em] mb-2 leading-none">
+              <label className="block text-[10px] font-black text-rose-400 uppercase tracking-[0.2em] mb-3 md:mb-2 leading-none">
                 Category (زمرہ)
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5 md:gap-2">
                 {(Object.keys(categoryLabels) as TransactionCategory[]).map((cat) => (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setFormData({ ...formData, category: cat })}
-                    className={`px-3 py-3 rounded-xl border text-left transition-all ${formData.category === cat
+                    className={`px-3 py-3 md:py-3.5 rounded-2xl md:rounded-xl border text-left transition-all active:scale-[0.97] ${formData.category === cat
                       ? 'bg-rose-50 border-rose-200 text-rose-700 shadow-sm'
                       : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
                       }`}
                   >
-                    <div className="text-[9px] font-black uppercase tracking-tight leading-none mb-1 opacity-60">
+                    <div className="text-[8px] md:text-[9px] font-black uppercase tracking-tight leading-none mb-1.5 md:mb-1 opacity-60">
                       {categoryLabels[cat].en}
                     </div>
-                    <div className="font-urdu font-bold text-xs leading-none">
+                    <div className="font-urdu font-bold text-xs md:text-sm leading-none">
                       {categoryLabels[cat].ur}
                     </div>
                   </button>
