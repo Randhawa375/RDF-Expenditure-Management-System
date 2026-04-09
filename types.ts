@@ -17,6 +17,7 @@ export enum TransactionCategory {
   WORKER_EXPENSE = 'WORKER_EXPENSE',
   FARM_EXPENSE = 'FARM_EXPENSE',
   FOOD = 'FOOD',
+  MAKAI_TORI = 'MAKAI_TORI',
   MISC = 'MISC'
 }
 
@@ -25,6 +26,7 @@ export const categoryLabels: Record<TransactionCategory, { en: string, ur: strin
   [TransactionCategory.WORKER_EXPENSE]: { en: 'Worker Expense', ur: 'ورکر کا خرچہ' },
   [TransactionCategory.FARM_EXPENSE]: { en: 'Farm Expense', ur: 'فارم کا خرچہ' },
   [TransactionCategory.FOOD]: { en: 'Food', ur: 'خوراک' },
+  [TransactionCategory.MAKAI_TORI]: { en: 'Makai Tori', ur: 'مکئی توڑی' },
   [TransactionCategory.MISC]: { en: 'Misc Kharcha', ur: 'دیگر اخراجات' }
 };
 
@@ -96,3 +98,10 @@ export interface ToriRecord {
   slip_url?: string;
   created_at?: string;
 }
+
+export interface CheckedDate {
+  date: string;
+  is_checked: boolean;
+  user_id?: string;
+}
+

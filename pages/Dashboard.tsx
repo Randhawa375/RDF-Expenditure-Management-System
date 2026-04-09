@@ -24,7 +24,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   onAdd
 }) => {
   const navigate = useNavigate();
-  const [activeDetailView, setActiveDetailView] = useState<'income' | 'expense' | 'balance' | null>(null);
+  const [activeDetailView, setActiveDetailView] = useState<'income' | 'expense' | 'balance' | 'category_detail' | null>(null);
+  const [activeCategory, setActiveCategory] = useState<TransactionCategory | null>(null);
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteAmount, setNoteAmount] = useState('');
@@ -433,7 +434,14 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
           {(Object.keys(categoryLabels) as TransactionCategory[]).map((cat) => (
-            <div key={cat} className="bg-slate-50 p-4 rounded-2xl border border-transparent hover:border-slate-200 transition-all group">
+            <button
+              key={cat}
+              onClick={() => {
+                setActiveCategory(cat);
+                setActiveDetailView('category_detail');
+              }}
+              className="text-left bg-slate-50 p-4 rounded-2xl border border-transparent hover:border-slate-300 hover:bg-slate-100 transition-all group focus:outline-none"
+            >
               <div className="text-[9px] font-black text-slate-400 uppercase tracking-tight mb-1 group-hover:text-slate-600 transition-colors">
                 {categoryLabels[cat].en}
               </div>
@@ -443,7 +451,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="text-lg font-black text-slate-900 tabular-nums leading-none">
                 PKR {categoryBreakdown[cat]?.toLocaleString() || 0}
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -452,19 +460,22 @@ const Dashboard: React.FC<DashboardProps> = ({
       {activeDetailView && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300 max-h-[90vh] flex flex-col">
-            <div className={`px-6 py-5 flex justify-between items-center shrink-0 ${activeDetailView === 'income' ? 'bg-emerald-600' :
+              <div className={`px-6 py-5 flex justify-between items-center shrink-0 ${activeDetailView === 'income' ? 'bg-emerald-600' :
               activeDetailView === 'expense' ? 'bg-rose-600' :
+              activeDetailView === 'category_detail' ? 'bg-indigo-600' :
                 'bg-slate-900'
               }`}>
               <div>
                 <h2 className="text-xl font-black text-white tracking-tight">
                   {activeDetailView === 'income' ? 'Total Received Details' :
                     activeDetailView === 'expense' ? 'Total Expense Details' :
+                    activeDetailView === 'category_detail' && activeCategory ? `${categoryLabels[activeCategory].en} Details` :
                       'Net Balance Details'}
                 </h2>
                 <p className="text-white/60 text-xs font-bold uppercase tracking-widest mt-0.5">
                   {activeDetailView === 'income' ? 'وصول شدہ رقم کی تفصیل' :
                     activeDetailView === 'expense' ? 'کل خرچہ کی تفصیل' :
+                    activeDetailView === 'category_detail' && activeCategory ? categoryLabels[activeCategory].ur :
                       'تفصیلات'}
                 </p>
               </div>
@@ -572,6 +583,33 @@ const Dashboard: React.FC<DashboardProps> = ({
                         ))}
                     </>
                   )}
+                </div>
+              )}
+
+              {activeDetailView === 'category_detail' && activeCategory && (
+                <div className="space-y-4">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 sticky top-0 bg-white py-2">
+                    {categoryLabels[activeCategory].en} Expenses ({selectedMonth})
+                  </h3>
+                  {(() => {
+                    const catTransactions = filteredTransactions.filter(
+                      t => t.type === TransactionType.EXPENSE && (t.category === activeCategory || (!t.category && activeCategory === TransactionCategory.MISC))
+                    ).sort((a, b) => b.date.localeCompare(a.date));
+
+                    if (catTransactions.length === 0) {
+                      return <p className="text-sm text-slate-400 italic text-center py-4">No records found for this category.</p>;
+                    }
+
+                    return catTransactions.map(t => (
+                      <div key={t.id} className="flex justify-between items-center bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                        <div>
+                          <p className="font-bold text-slate-800">{t.description}</p>
+                          <p className="text-xs text-slate-400 font-mono mt-0.5">{t.date}</p>
+                        </div>
+                        <span className="font-mono font-black text-indigo-600 text-lg">{t.amount.toLocaleString()}</span>
+                      </div>
+                    ));
+                  })()}
                 </div>
               )}
 

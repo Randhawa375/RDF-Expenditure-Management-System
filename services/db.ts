@@ -374,5 +374,39 @@ export const db = {
       .getPublicUrl(data.path);
 
     return publicUrl;
+  },
+
+  // Checked Dates Methods
+  getCheckedDates: async (monthPrefix: string): Promise<string[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('checked_dates')
+      .select('date')
+      .like('date', `${monthPrefix}%`)
+      .eq('is_checked', true);
+
+    if (error) {
+      console.error('Error fetching checked dates:', error);
+      return [];
+    }
+
+    return (data || []).map(d => d.date);
+  },
+
+  toggleCheckedDate: async (date: string, isChecked: boolean): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('checked_dates')
+      .upsert({
+        date: date,
+        is_checked: isChecked,
+        user_id: user.id
+      });
+
+    if (error) throw error;
   }
 };

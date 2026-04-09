@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType } from '../types';
 import { jsPDF } from 'jspdf';
 import { PdfGenerator } from '../services/pdfGenerator';
+import { db } from '../services/db';
 
 interface TransactionsPageProps {
   type: TransactionType;
@@ -21,6 +22,37 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
       month: '2-digit'
     }).format(new Date()).slice(0, 7);
   });
+  const [checkedDates, setCheckedDates] = useState<string[]>([]);
+
+  const fetchCheckedDates = async () => {
+    const dates = await db.getCheckedDates(selectedMonth);
+    setCheckedDates(dates);
+  };
+
+  useEffect(() => {
+    fetchCheckedDates();
+  }, [selectedMonth]);
+
+  const handleToggleCheck = async (e: React.MouseEvent, dateStr: string) => {
+    e.stopPropagation();
+    const isCurrentlyChecked = checkedDates.includes(dateStr);
+    const newStatus = !isCurrentlyChecked;
+    
+    // Optimistic UI update
+    if (newStatus) {
+      setCheckedDates(prev => [...prev, dateStr]);
+    } else {
+      setCheckedDates(prev => prev.filter(d => d !== dateStr));
+    }
+
+    try {
+      await db.toggleCheckedDate(dateStr, newStatus);
+    } catch (error) {
+      console.error("Failed to toggle check status", error);
+      // Revert on failure
+      fetchCheckedDates();
+    }
+  };
 
   useEffect(() => {
     if (todayRef.current) {
@@ -286,6 +318,17 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ type, transactions,
 
                 {/* Amount or Placeholder */}
                 <div className="flex items-center gap-3 md:gap-4 shrink-0">
+                  {/* Checkbox Toggle */}
+                  <button
+                    onClick={(e) => handleToggleCheck(e, dateStr)}
+                    className={`w-6 h-6 md:w-8 md:h-8 rounded-lg border-2 flex items-center justify-center transition-all ${checkedDates.includes(dateStr) ? 'bg-indigo-600 border-indigo-600' : 'border-slate-200 bg-white hover:border-indigo-400'}`}
+                    title={checkedDates.includes(dateStr) ? "Marked as Checked" : "Mark as Checked"}
+                  >
+                    {checkedDates.includes(dateStr) && (
+                      <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                    )}
+                  </button>
+
                   {total > 0 ? (
                     <div className="text-right leading-none">
                       <div className={`text-lg md:text-xl font-black ${isExpense ? 'text-rose-600' : 'text-emerald-600'}`}>
